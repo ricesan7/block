@@ -1,0 +1,278 @@
+<!doctype html>
+
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Brick Breaker+ (Retro 75vh, Offline)</title>
+  <style>
+    :root {
+      --bg:#1a1a1a; --bg2:#0d0d0d; --fg:#e0e0c0; --accent:#f0d060; --muted:#a0a080;
+      --brick:#d04040; --brick2:#40a040; --brick3:#4060d0;
+      --green:#50c878; --yellow:#f0e68c; --glass:#222222aa;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body { margin:0; font-family: ui-monospace, Menlo, Consolas, monospace; background: var(--bg2); color: var(--fg); display:grid; min-height:100vh; place-items:start center; }
+    .wrap { width:min(980px, 96vw); padding:8px 8px calc(env(safe-area-inset-bottom, 0) + 8px); }
+    header { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px; }
+    h1 { font-size:14px; margin:0; color:var(--accent); letter-spacing:1px; }
+    .controls { display:flex; gap:6px; flex-wrap:wrap; }
+    button { padding:6px 10px; border-radius:4px; border:2px solid var(--fg); background: var(--bg); color:var(--fg); cursor:pointer; font-family:inherit; font-size:10px; }
+    button:hover { background: var(--fg); color: var(--bg); }
+    .panel { display:flex; align-items:center; gap:8px; color:var(--muted); flex-wrap:wrap; padding:4px 6px; border-radius:4px; background: var(--glass); border:2px solid var(--fg); font-size:10px; }
+    .badge { padding:1px 4px; border-radius:2px; border:1px solid var(--fg); background:var(--bg2); font-size:9px; color:var(--accent); }
+    .score { font-weight:700; color:var(--accent); }
+    #screen { display:block; background:var(--bg); border:2px solid var(--fg); image-rendering: pixelated; touch-action: none; margin:0 auto; }
+    footer { margin-top:6px; font-size:9px; color:var(--muted); display:flex; justify-content:space-between; gap:6px; flex-wrap:wrap; }
+    kbd { background:var(--bg); border:1px solid var(--fg); padding:1px 3px; font-family:inherit; font-size:9px; }
+    .mobile-pad { display:none; gap:8px; justify-content:center; margin-top:6px; }
+    .mobile-pad button { width:56px; height:56px; border-radius:4px; font-size:12px; touch-action: none; background:var(--bg2); border:2px solid var(--fg); color:var(--fg); font-family:inherit; }
+    @media (max-width: 768px){ .mobile-pad { display:flex; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Brick Breaker+ Retro</h1>
+      <div class="controls">
+        <button id="btnStart">▶︎/⏸</button>
+        <button id="btnReset">⟲</button>
+      </div>
+    </header>
+    <div class="panel" id="scorePanel">
+      <div>SCORE:<span id="score" class="score">0</span></div>
+      <div>LIVES:<span id="lives">3</span></div>
+      <div>LV:<span id="level">1</span></div>
+      <div>x<span id="mult">1.00</span></div>
+      <div>FPS:<span id="fps">0</span></div>
+      <div id="powerBadges" class="badge">NO POWER</div>
+    </div>
+    <canvas id="screen" aria-label="game screen" role="img"></canvas>
+    <div class="mobile-pad" id="mobilePad" aria-label="virtual controls">
+      <button id="btnLeft">←</button>
+      <button id="btnLaunch">●</button>
+      <button id="btnRight">→</button>
+    </div>
+    <footer>
+      <div><kbd>←</kbd><kbd>→</kbd> MOVE / <kbd>SPACE</kbd>● LAUNCH / <kbd>P</kbd> PAUSE</div>
+    </footer>
+  </div>  <script>
+    // ===== Helpers =====
+    const $ = (id) => document.getElementById(id);
+    const startBtn = $('btnStart');
+    const resetBtn = $('btnReset');
+    const scoreEl = $('score');
+    const livesEl = $('lives');
+    const levelEl = $('level');
+    const multEl  = $('mult');
+    const powerEl = $('powerBadges');
+    const fpsEl   = $('fps');
+    const canvas  = $('screen');
+    const panel   = $('scorePanel');
+    const ctx     = canvas.getContext('2d');
+
+    // ===== CSS var resolve =====
+    const CSSV = getComputedStyle(document.documentElement);
+    const COLOR = {
+      brick : CSSV.getPropertyValue('--brick').trim()  || '#d04040',
+      brick2: CSSV.getPropertyValue('--brick2').trim() || '#40a040',
+      brick3: CSSV.getPropertyValue('--brick3').trim() || '#4060d0',
+      green : CSSV.getPropertyValue('--green').trim()  || '#50c878',
+      yellow: CSSV.getPropertyValue('--yellow').trim() || '#f0e68c',
+      fg    : CSSV.getPropertyValue('--fg').trim()     || '#e0e0c0',
+      bg    : CSSV.getPropertyValue('--bg').trim()     || '#1a1a1a'
+    };
+
+    // ===== Size sync (canvas width = panel width) =====
+    function syncCanvasSize(){
+      const w = Math.floor(panel.getBoundingClientRect().width);
+      const h = Math.floor(w * 1.5); // 縦長
+      canvas.style.width = w + 'px';
+      canvas.style.height = h + 'px';
+      const dpr = Math.max(1, Math.min(3, window.devicePixelRatio||1));
+      canvas.width = Math.round(w * dpr);
+      canvas.height= Math.round(h * dpr);
+      ctx.setTransform(dpr,0,0,dpr,0,0);
+      W = Math.round(canvas.width/dpr);
+      H = Math.round(canvas.height/dpr);
+      paddle.y = H - 56;
+      makeLevel(level);
+      resetBallAndPaddle();
+    }
+    window.addEventListener('resize', ()=>{ syncCanvasSize(); });
+
+    // ===== World =====
+    let W=480, H=720;
+    const STEP=1/120; let playing=false, last=performance.now(), acc=0;
+    const PADDLE = { w:104, h:16, speed:600, minW:64, maxW:240 };
+    const BALL   = { r:8, baseSpeed:480 };
+    const WALL   = { pad:10 };
+
+    let score=0, lives=3, level=1;
+    let multiplier=1.0; // ★コンボ倍率（ヒット毎に上昇 / ミスでリセット）
+    const MULT_INC = 0.10; // 1ヒットで+0.10
+    const MULT_MAX = 5.00; // 上限
+
+    const keys=new Set();
+    window.addEventListener('keydown', (e)=>{ if(["ArrowLeft","ArrowRight"," ","p","P"].includes(e.key)) e.preventDefault(); keys.add(e.key); });
+    window.addEventListener('keyup',   (e)=>{ keys.delete(e.key); });
+
+    const mobile={left:false,right:false,launch:false};
+    function bindHold(btnId,on,off){ const b=$(btnId); if(!b) return; const d=e=>{e.preventDefault();on();}; const u=e=>{e.preventDefault();off();}; b.addEventListener('pointerdown',d,{passive:false}); b.addEventListener('pointerup',u,{passive:false}); b.addEventListener('pointerleave',u,{passive:false}); b.addEventListener('pointercancel',u,{passive:false}); }
+    bindHold('btnLeft', ()=>mobile.left=true, ()=>mobile.left=false);
+    bindHold('btnRight',()=>mobile.right=true,()=>mobile.right=false);
+    $('btnLaunch')?.addEventListener('pointerdown', e=>{e.preventDefault(); mobile.launch=true;},{passive:false});
+
+    // ===== Audio (beep only for simplicity here) =====
+    let actx; function beep(freq=660, dur=0.05, type='square'){ try{ actx=actx||new (window.AudioContext||window.webkitAudioContext)(); const o=actx.createOscillator(), g=actx.createGain(); o.type=type; o.frequency.value=freq; o.connect(g); g.connect(actx.destination); g.gain.setValueAtTime(0.08, actx.currentTime); g.gain.exponentialRampToValueAtTime(0.0001, actx.currentTime+dur); o.start(); o.stop(actx.currentTime+dur);}catch(_){}}
+
+    // ===== Entities =====
+    const paddle={x:0,y:0,w:PADDLE.w,h:PADDLE.h};
+    function newBall(){ return {x:paddle.x+paddle.w/2,y:paddle.y-BALL.r-1,vx:0,vy:0,r:BALL.r,stuck:true,trail:[]}; }
+    let balls=[newBall()];
+
+    const BR={cols:10, rows:9, pad:6, h:18};
+    let bricks=[]; // {x,y,w,h,hp,color,alive}
+
+    const PU_TYPES=['E','S','M','L'];
+    let powerups=[]; // {x,y,v,type,alive}
+    const effects={expand:0,slow:0};
+
+    function makeLevel(n){
+      bricks.length=0;
+      const margin=WALL.pad, usableW=W-margin*2;
+      const bw = Math.floor((usableW - (BR.cols-1)*BR.pad) / BR.cols);
+      const top = Math.max(36, Math.round(H*0.08));
+      for(let r=0;r<BR.rows;r++){
+        for(let c=0;c<BR.cols;c++){
+          const x=margin + c*(bw+BR.pad);
+          const y=top + r*(BR.h+BR.pad);
+          // 基本HP：行とレベルで増えるが…
+          let hp = 1 + (r>>1) + Math.floor((n-1)/2);
+          // ★青ブロックは常に1発破壊
+          const color = r<3? COLOR.brick : r<6? COLOR.brick2 : COLOR.brick3;
+          if(color===COLOR.brick3) hp = 1;
+          bricks.push({x,y,w:bw,h:BR.h,hp,alive:true,color});
+        }
+      }
+    }
+
+    function resetBallAndPaddle(){ balls=[newBall()]; }
+    function launchBallAll(){
+      for(const b of balls){
+        if(b.stuck){
+          const angle=(-60+Math.random()*20)*Math.PI/180;
+          const sp = BALL.baseSpeed*(effects.slow>0?0.7:1);
+          b.vx=Math.cos(angle)*sp; b.vy=Math.sin(angle)*sp; b.stuck=false; b.trail.length=0;
+        }
+      }
+      beep(880,0.05,'square');
+    }
+
+    const clamp=(v,a,b)=>Math.min(Math.max(v,a),b);
+    function circleRectHit(cx,cy,cr, rx,ry,rw,rh){ const nx=clamp(cx,rx,rx+rw), ny=clamp(cy,ry,ry+rh); const dx=cx-nx, dy=cy-ny; return (dx*dx+dy*dy)<=cr*cr; }
+    function reflectCircleFromRect(cx,cy,r, vx,vy, rx,ry,rw,rh){ const nx=clamp(cx,rx,rx+rw), ny=clamp(cy,ry,ry+rh); const dx=cx-nx, dy=cy-ny; if(Math.abs(dx)>Math.abs(dy)) return {vx:-vx, vy}; if(Math.abs(dy)>Math.abs(dx)) return {vx, vy:-vy}; return {vx:-vx, vy:-vy}; }
+
+    let particles=[]; function burst(x,y,color){ for(let i=0;i<8;i++) particles.push({x,y,vx:(Math.random()*2-1)*120,vy:(Math.random()*2-1)*120,life:0.35,color}); }
+
+    function spawnPowerUp(x,y){ if(Math.random()<0.22){ const type=PU_TYPES[Math.floor(Math.random()*PU_TYPES.length)]; powerups.push({x,y,v:120,type,alive:true}); } }
+    function applyPowerUp(type){ if(type==='E'){ effects.expand=12; paddle.w=clamp(Math.round(paddle.w*1.5),PADDLE.minW,PADDLE.maxW); beep(660,0.08,'square'); } if(type==='S'){ effects.slow=8; for(const b of balls){ b.vx*=0.7; b.vy*=0.7; } beep(330,0.08,'sine'); } if(type==='M'){ const clones=[]; for(const b of balls){ if(!b.stuck){ clones.push({x:b.x,y:b.y,vx:-b.vx,vy:b.vy,r:b.r,stuck:false,trail:[]}); } } balls.push(...clones); beep(520,0.08,'triangle'); } if(type==='L'){ lives++; livesEl.textContent=String(lives); beep(990,0.08,'square'); } updateBadges(); }
+
+    function updateBadges(){ const tags=[]; if(effects.expand>0) tags.push('E'); if(effects.slow>0) tags.push('S'); powerEl.textContent=tags.length?('POWER:'+tags.join(',')):'NO POWER'; multEl.textContent=multiplier.toFixed(2); }
+
+    function step(dt){
+      if(effects.expand>0){ effects.expand-=dt; if(effects.expand<=0){ paddle.w=clamp(PADDLE.w,PADDLE.minW,PADDLE.maxW); }}
+      if(effects.slow>0){ effects.slow-=dt; }
+
+      let vx=0; if(keys.has('ArrowLeft')||mobile.left) vx-=PADDLE.speed; if(keys.has('ArrowRight')||mobile.right) vx+=PADDLE.speed;
+      paddle.x=clamp(paddle.x+vx*dt, WALL.pad, W-WALL.pad-paddle.w);
+      if(keys.has(' ')||mobile.launch){ launchBallAll(); mobile.launch=false; }
+      if(keys.has('p')||keys.has('P')){ playing=false; keys.delete('p'); keys.delete('P'); startBtn.textContent='▶︎'; }
+
+      for(const b of balls){
+        if(b.stuck){ b.x=paddle.x+paddle.w/2; b.y=paddle.y-b.r-1; b.trail.length=0; continue; }
+        b.trail.push({x:b.x,y:b.y,life:0.25}); if(b.trail.length>14) b.trail.shift(); for(const t of b.trail){ t.life-=dt; }
+        b.x+=b.vx*dt; b.y+=b.vy*dt;
+        if(b.x-b.r<=WALL.pad){ b.x=WALL.pad+b.r; b.vx*=-1; beep(440,0.02); }
+        if(b.x+b.r>=W-WALL.pad){ b.x=W-WALL.pad-b.r; b.vx*=-1; beep(440,0.02); }
+        if(b.y-b.r<=WALL.pad){ b.y=WALL.pad+b.r; b.vy*=-1; beep(440,0.02); }
+        if(b.y-b.r>H){
+          balls.splice(balls.indexOf(b),1);
+          if(balls.length===0){
+            // ★ミス: 倍率リセット
+            multiplier = 1.0; updateBadges();
+            lives--; livesEl.textContent=String(lives);
+            if(lives<=0){ level=1; score=0; lives=3; levelEl.textContent='1'; scoreEl.textContent='0'; livesEl.textContent='3'; makeLevel(level); }
+            resetBallAndPaddle();
+          }
+          break;
+        }
+        if(circleRectHit(b.x,b.y,b.r, paddle.x,paddle.y,paddle.w,paddle.h) && b.vy>0){
+          const hit=((b.x-(paddle.x+paddle.w/2))/(paddle.w/2));
+          const ang=(-75+60*hit)*Math.PI/180;
+          const sp=Math.hypot(b.vx,b.vy);
+          b.vx=Math.cos(ang)*sp; b.vy=Math.sin(ang)*sp; b.y=paddle.y-b.r-1; beep(620,0.03);
+        }
+      }
+
+      // bricks & score / multiplier
+      outer: for(const b of balls){ if(b.stuck) continue; for(const br of bricks){ if(!br.alive) continue; if(circleRectHit(b.x,b.y,b.r, br.x,br.y,br.w,br.h)){
+            const r=reflectCircleFromRect(b.x,b.y,b.r,b.vx,b.vy,br.x,br.y,br.w,br.h); b.vx=r.vx; b.vy=r.vy; br.hp--; burst(b.x,b.y,br.color); beep(800,0.03,'triangle');
+            // ★ヒットごとに倍率上昇
+            multiplier = Math.min(MULT_MAX, +(multiplier + MULT_INC).toFixed(2)); updateBadges();
+            if(br.hp<=0){ br.alive=false; const add=Math.round(50*multiplier); score+=add; scoreEl.textContent=String(score); spawnPowerUp(br.x+br.w/2, br.y+br.h/2); }
+            break outer; } } }
+
+      // powerups
+      for(const p of powerups){ if(!p.alive) continue; p.y+=p.v*dt; if(p.y>H+20) p.alive=false; if(circleRectHit(p.x,p.y,10, paddle.x,paddle.y,paddle.w,paddle.h)){ p.alive=false; applyPowerUp(p.type); }} powerups=powerups.filter(p=>p.alive!==false);
+
+      // particles decay
+      for(const pt of particles){ pt.x+=pt.vx*dt; pt.y+=pt.vy*dt; pt.vx*=0.98; pt.vy*=0.98; pt.life-=dt; } particles=particles.filter(pt=>pt.life>0);
+
+      if(bricks.every(b=>!b.alive)){ level++; levelEl.textContent=String(level); makeLevel(level); resetBallAndPaddle(); }
+      updateBadges();
+    }
+
+    // ===== Render =====
+    function drawBackground(){ ctx.fillStyle=COLOR.bg; ctx.fillRect(0,0,W,H); ctx.strokeStyle=COLOR.fg; ctx.lineWidth=2; ctx.strokeRect(WALL.pad+1,WALL.pad+1, W-2*WALL.pad-2, H-2*WALL.pad-2); }
+    function rrect(x,y,w,h){ ctx.fillRect(x,y,w,h); }
+    function drawPaddle(){ ctx.fillStyle=COLOR.fg; rrect(paddle.x,paddle.y,paddle.w,paddle.h); }
+    function drawBalls(){ ctx.fillStyle=COLOR.fg; for(const b of balls){ for(const t of b.trail){ const a=Math.max(0,t.life/0.25); if(a<=0) continue; ctx.globalAlpha=a*0.6; ctx.fillRect(Math.round(t.x)-2, Math.round(t.y)-2, 4, 4);} ctx.globalAlpha=1; ctx.fillRect(Math.round(b.x)-2, Math.round(b.y)-2, 4, 4);} }
+    function drawBricks(){ for(const br of bricks){ if(!br.alive) continue; ctx.fillStyle=br.color; rrect(br.x,br.y,br.w,br.h); ctx.strokeStyle=COLOR.fg; ctx.lineWidth=1; ctx.strokeRect(br.x+0.5,br.y+0.5,br.w-1,br.h-1);} }
+    function drawPowerUps(){ for(const p of powerups){ ctx.fillStyle = p.type==='E'? COLOR.green : p.type==='S'? COLOR.yellow : '#88b0ff'; ctx.fillRect(p.x-6,p.y-6,12,12); ctx.fillStyle = COLOR.bg; ctx.font='10px ui-monospace, monospace'; ctx.fillText(p.type, p.x-3, p.y+3); } }
+    function drawParticles(){ ctx.fillStyle=COLOR.fg; for(const pt of particles){ ctx.globalAlpha=Math.max(0,pt.life/0.35); ctx.fillRect(pt.x,pt.y,2,2);} ctx.globalAlpha=1; }
+    function render(){ ctx.clearRect(0,0,W,H); drawBackground(); drawBricks(); drawPaddle(); drawBalls(); drawPowerUps(); drawParticles(); }
+
+    // ===== Loop =====
+    let fpsCount=0, fpsTime=performance.now();
+    function fpsTick(){ fpsCount++; const now=performance.now(); if(now-fpsTime>=500){ const fps=Math.round(1000*fpsCount/(now-fpsTime)); fpsEl.textContent=String(fps); fpsTime=now; fpsCount=0; } }
+    function loop(t){ if(!playing){ last=t; requestAnimationFrame(loop); return; } let dt=(t-last)/1000; last=t; dt=Math.min(dt,0.05); acc+=dt; while(acc>=STEP){ step(STEP); acc-=STEP; } render(); fpsTick(); requestAnimationFrame(loop); }
+
+    // ===== Init / Bindings =====
+    startBtn?.addEventListener('click', ()=>{ playing=!playing; startBtn.textContent=playing?'⏸':'▶︎'; });
+    resetBtn?.addEventListener('click', ()=>{ score=0; level=1; lives=3; multiplier=1.0; scoreEl.textContent='0'; levelEl.textContent='1'; livesEl.textContent='3'; multEl.textContent='1.00'; powerups.length=0; particles.length=0; paddle.w=PADDLE.w; makeLevel(level); resetBallAndPaddle(); updateBadges(); });
+
+    let Wtmp=0; // ensure first sync triggers
+    function ensureSync(){ const w=Math.floor(panel.getBoundingClientRect().width); if(w!==Wtmp){ Wtmp=w; syncCanvasSize(); } }
+    ensureSync();
+    window.addEventListener('load', ensureSync);
+    window.addEventListener('resize', ensureSync);
+
+    // Start loop
+    requestAnimationFrame(loop);
+
+    // ===== Console tests =====
+    (function tests(){
+      const assert=(n,c)=> c? console.log('TEST PASS:',n):console.error('TEST FAIL:',n);
+      const isResolved=s=>typeof s==='string'&&s.length>0&&!s.includes('var(');
+      assert('COLOR.brick resolved', isResolved(COLOR.brick));
+      makeLevel(1); assert('bricks created', bricks.length===BR.cols*BR.rows);
+      // 青ブロックは1発:
+      const blue = bricks.find(b=>b.color===COLOR.brick3); assert('blue hp == 1', blue && blue.hp===1);
+      // 倍率: ヒット毎に上がる
+      const m0=multiplier; multiplier=Math.min(MULT_MAX, +(multiplier+MULT_INC).toFixed(2)); assert('mult inc', multiplier>m0);
+      multiplier=1.0; // reset
+    })();
+  </script></body>
+</html>
