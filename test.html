@@ -248,18 +248,27 @@ async function fetchGlobalScores(){
     return Array.isArray(data) ? data.slice(0,LB_LIMIT) : null;
   }catch(e){ console.warn('global list failed', e); return null; }
 }
-async function submitGlobalScore(name,score){
+async function submitGlobalScore(name, score){
   if(!LEADERBOARD_ENDPOINT) return {ok:false};
   try{
+    // ★ ヘッダーを付けない（＝ text/plain 扱い）→ プリフライト回避
     const r = await fetch(LEADERBOARD_ENDPOINT, {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({mode:'submit', name, score, ts: Date.now()})
+      method: 'POST',
+      // headers: { 'Content-Type': 'application/json' }, // ← 付けない！
+      body: JSON.stringify({ mode:'submit', name, score, ts: Date.now() }),
+      // mode: 'cors' // 省略でもOK（明示しても可）
     });
-    const res = await r.json();
-    return {ok: !!res?.ok};
-  }catch(e){ console.warn('global submit failed', e); return {ok:false}; }
+
+    // GASのWebアプリは200以外でも本文にJSONが来ることがあるので念のためtry
+    let res = null;
+    try { res = await r.json(); } catch(_) { /* ignore */ }
+    return { ok: !!(res && res.ok) };
+  }catch(e){
+    console.warn('global submit failed', e);
+    return { ok:false };
+  }
 }
+
 function mergeAndTrim(localArr, add){ // ローカルのみで順位判定に使う
   const arr=[...localArr, add].sort((a,b)=>b.score-a.score).slice(0,LB_LIMIT);
   return arr;
