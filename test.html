@@ -439,4 +439,40 @@
     ['selectstart','dragstart','contextmenu'].forEach(ev=>{
       document.addEventListener(ev, e=>{
         if ((e.target instanceof HTMLElement) && (e.target.closest('#mobilePad') || e.target.id==='screen')){
-          e.preventDefault()
+          e.preventDefault();
+        }
+      }, {passive:false});
+    });
+    if (canvas) canvas.setAttribute('draggable','false');
+
+    // ===== テスト（簡易） =====
+    (function tests(){
+      const assert=(n,c)=> c? console.log('TEST PASS:',n):console.error('TEST FAIL:',n);
+      const isResolved=s=>typeof s==='string'&&s.length>0&&!s.includes('var(');
+      assert('COLOR.brick resolved', isResolved(COLOR.brick));
+      makeLevel(1); assert('bricks created', bricks.length===BR.cols*BR.rows);
+      const blue = bricks.find(b=>b.color===COLOR.brick3); assert('blue hp == 1', blue && blue.hp===1);
+      const m0=multiplier; const m1=Math.min(MULT_MAX, +(m0+MULT_INC).toFixed(2)); assert('mult inc formula', m1>m0);
+    })();
+
+    // ===== Bind & Init =====
+    startBtn?.addEventListener('click', ()=>{ playing=!playing; startBtn.textContent=playing?'⏸':'▶︎'; });
+    resetBtn?.addEventListener('click', ()=>{
+      score=0; level=1; lives=3; multiplier=1.0;
+      scoreEl.textContent='0'; levelEl.textContent='1'; livesEl.textContent='3'; multEl.textContent='1.00';
+      powerups.length=0; particles.length=0; paddle.w=PADDLE.w;
+      makeLevel(level); resetBallAndPaddle(); updateBadges();
+    });
+
+    // 初期化
+    scoreEl.textContent=String(score);
+    livesEl.textContent=String(lives);
+    levelEl.textContent=String(level);
+    updateBadges();
+    ensureSync();
+    window.addEventListener('load', ensureSync);
+    window.addEventListener('resize', ensureSync);
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>
