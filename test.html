@@ -1,73 +1,91 @@
 <!doctype html>
 <html lang="ja">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Brick Breaker+ (GB DPAD/AB, 75vh)</title>
-  <style>
-    :root {
-      /* ベース配色（レトロ） */
-      --bg:#1a1a1a; --bg2:#0d0d0d; --fg:#e0e0c0; --accent:#f0d060; --muted:#a0a080;
-      --brick:#d04040; --brick2:#40a040; --brick3:#4060d0;
-      --green:#50c878; --yellow:#f0e68c; --glass:#222222aa;
-      /* コントローラー（デフォルト値: 後でGBテーマで上書き） */
-      --ctrl-surface: #0f0f0f;
-      --ctrl-border:  #e0e0c0;
-      --ctrl-dpad:    #3a3a3a;
-      --ctrl-dpad-fg: #d9d9d9;
-      --ctrl-a:       #b11717;
-      --ctrl-b:       #7d0f0f;
-      --ctrl-ab-fg:   #f3e6c0;
-      --ctrl-shadow:  rgba(0,0,0,.45);
-    }
-    /* --- 固定テーマ：GAME BOY --- */
-    body[data-theme="gb"]{
-      --ctrl-surface:#1d2b1d; --ctrl-border:#b8d38b; --ctrl-dpad:#2f3a2f; --ctrl-dpad-fg:#cfe6a3;
-      --ctrl-a:#7b2f6a; --ctrl-b:#5e2552; --ctrl-ab-fg:#e6ffd2; --ctrl-shadow:rgba(0,0,0,.45);
-    }
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Brick Breaker+ (GB Pad + Leaderboard)</title>
+<style>
+  :root {
+    --bg:#1a1a1a; --bg2:#0d0d0d; --fg:#e0e0c0; --accent:#f0d060; --muted:#a0a080;
+    --brick:#d04040; --brick2:#40a040; --brick3:#4060d0;
+    --green:#50c878; --yellow:#f0e68c; --glass:#222222aa;
+    --ctrl-surface:#1d2b1d; --ctrl-border:#b8d38b; --ctrl-dpad:#2f3a2f; --ctrl-dpad-fg:#cfe6a3;
+    --ctrl-a:#7b2f6a; --ctrl-b:#5e2552; --ctrl-ab-fg:#e6ffd2; --ctrl-shadow:rgba(0,0,0,.45);
+    --btn-base:56px; --gap-base:8px; --pad-scale:1;
+  }
+  html, body { height: 100svh; overflow: hidden; }
+  body {
+    margin:0; font-family: ui-monospace, Menlo, Consolas, monospace;
+    background: var(--bg2); color: var(--fg);
+    display:grid; min-height:100svh; place-items:start center;
+    -webkit-user-select:none; user-select:none; overscroll-behavior:none;
+    -webkit-touch-callout:none; -webkit-tap-highlight-color: transparent;
+  }
+  .wrap { width:min(980px, 96vw); padding:8px 8px calc(env(safe-area-inset-bottom, 0) + 8px); }
+  header { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px; }
+  h1 { font-size:14px; margin:0; color:var(--accent); letter-spacing:1px; }
+  .controls { display:flex; gap:6px; flex-wrap:wrap; }
+  button { padding:6px 10px; border-radius:4px; border:2px solid var(--fg); background: var(--bg); color:var(--fg); cursor:pointer; font-family:inherit; font-size:10px; }
+  button:hover { background: var(--fg); color: var(--bg); }
+  .panel { display:flex; align-items:center; gap:8px; color:var(--muted); flex-wrap:wrap; padding:4px 6px; border-radius:4px; background: var(--glass); border:2px solid var(--fg); font-size:10px; }
+  .badge { padding:1px 4px; border-radius:2px; border:1px solid var(--fg); background:var(--bg2); font-size:9px; color:var(--accent); }
+  .score { font-weight:700; color:var(--accent); }
+  #screen { display:block; background:var(--bg); border:2px solid var(--fg); image-rendering: pixelated; touch-action: none; margin:0 auto; }
+  footer { margin-top:6px; font-size:9px; color:var(--muted); display:flex; justify-content:space-between; gap:6px; flex-wrap:wrap; }
+  kbd { background:var(--bg); border:1px solid var(--fg); padding:1px 3px; font-family:inherit; font-size:9px; }
 
-    * { box-sizing: border-box; }
-    html, body { height: 100%; }
-    body {
-      margin:0; font-family: ui-monospace, Menlo, Consolas, monospace;
-      background: var(--bg2); color: var(--fg);
-      display:grid; min-height:100vh; place-items:start center;
-      -webkit-user-select:none; user-select:none;
-      -webkit-touch-callout:none; -webkit-tap-highlight-color: transparent;
-    }
-    .wrap { width:min(980px, 96vw); padding:8px 8px calc(env(safe-area-inset-bottom, 0) + 8px); }
-    header { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px; }
-    h1 { font-size:14px; margin:0; color:var(--accent); letter-spacing:1px; }
-    .controls { display:flex; gap:6px; flex-wrap:wrap; }
-    button { padding:6px 10px; border-radius:4px; border:2px solid var(--fg); background: var(--bg); color:var(--fg); cursor:pointer; font-family:inherit; font-size:10px; }
-    button:hover { background: var(--fg); color: var(--bg); }
-    .panel { display:flex; align-items:center; gap:8px; color:var(--muted); flex-wrap:wrap; padding:4px 6px; border-radius:4px; background: var(--glass); border:2px solid var(--fg); font-size:10px; }
-    .badge { padding:1px 4px; border-radius:2px; border:1px solid var(--fg); background:var(--bg2); font-size:9px; color:var(--accent); }
-    .score { font-weight:700; color:var(--accent); }
-    #screen { display:block; background:var(--bg); border:2px solid var(--fg); image-rendering: pixelated; touch-action: none; margin:0 auto; }
-    footer { margin-top:6px; font-size:9px; color:var(--muted); display:flex; justify-content:space-between; gap:6px; flex-wrap:wrap; }
-    kbd { background:var(--bg); border:1px solid var(--fg); padding:1px 3px; font-family:inherit; font-size:9px; }
+  /* GB Controller */
+  .mobile-pad { display:none; justify-content:space-between; align-items:center; gap:16px; margin-top:8px; padding:10px 6px;
+    background:var(--ctrl-surface); border:2px solid var(--ctrl-border); border-radius:8px;
+    transform: scale(var(--pad-scale)); transform-origin: bottom center;
+  }
+  .mobile-pad .dpad {
+    display:grid;
+    grid-template-columns: calc(var(--btn-base)*var(--pad-scale)) calc(var(--btn-base)*var(--pad-scale)) calc(var(--btn-base)*var(--pad-scale));
+    grid-template-rows:    calc(var(--btn-base)*var(--pad-scale)) calc(var(--btn-base)*var(--pad-scale)) calc(var(--btn-base)*var(--pad-scale));
+    gap: calc(var(--gap-base)*var(--pad-scale));
+  }
+  .mobile-pad .dpad .spacer { visibility:hidden; }
+  .mobile-pad .buttons { display:flex; align-items:center; gap:18px; }
+  .mobile-pad button {
+    width:calc(var(--btn-base)*var(--pad-scale)); height:calc(var(--btn-base)*var(--pad-scale));
+    border-radius:8px; font-size:calc(16px*var(--pad-scale));
+    touch-action:none; background:var(--bg2); border:2px solid var(--ctrl-border); color:var(--fg);
+    font-family:inherit; box-shadow: 0 2px 0 var(--ctrl-shadow); transition: transform .02s ease;
+  }
+  .mobile-pad button:active, .mobile-pad button.pressed { transform: translateY(1px); box-shadow: 0 1px 0 var(--ctrl-shadow); }
+  #dpadUp, #dpadDown, #dpadLeft, #dpadRight { background: var(--ctrl-dpad); color: var(--ctrl-dpad-fg); }
+  #btnA, #btnB { border-radius: 999px; color: var(--ctrl-ab-fg); }
+  #btnA { background: var(--ctrl-a); }  #btnB { background: var(--ctrl-b); }
+  @media (max-width: 768px){ .mobile-pad { display:flex; } }
 
-    /* === GAME BOY Controller look === */
-    .mobile-pad { display:none; justify-content:space-between; align-items:center; gap:16px; margin-top:8px; padding:10px 6px;
-      background:var(--ctrl-surface); border:2px solid var(--ctrl-border); border-radius:8px; }
-    .mobile-pad .dpad { display:grid; grid-template-columns: 56px 56px 56px; grid-template-rows: 56px 56px 56px; gap:8px; }
-    .mobile-pad .dpad .spacer { visibility:hidden; }
-    .mobile-pad .buttons { display:flex; align-items:center; gap:18px; }
-    .mobile-pad button { width:56px; height:56px; border-radius:8px; font-size:16px; touch-action:none;
-      background:var(--bg2); border:2px solid var(--ctrl-border); color:var(--fg);
-      font-family:inherit; box-shadow: 0 2px 0 var(--ctrl-shadow); transition: transform .02s ease; }
-    .mobile-pad button:active, .mobile-pad button.pressed { transform: translateY(1px); box-shadow: 0 1px 0 var(--ctrl-shadow); }
-    #dpadUp, #dpadDown, #dpadLeft, #dpadRight { background: var(--ctrl-dpad); color: var(--ctrl-dpad-fg); }
-    #btnA, #btnB { border-radius: 999px; color: var(--ctrl-ab-fg); }
-    #btnA { background: var(--ctrl-a); }
-    #btnB { background: var(--ctrl-b); }
-    @media (max-width: 768px){ .mobile-pad { display:flex; } }
+  .wrap, #screen, .mobile-pad, .mobile-pad * { -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; }
+  #screen, .mobile-pad button { -webkit-user-drag:none; user-drag:none; }
 
-    /* 追加の選択/ドラッグ抑止 */
-    .wrap, #screen, .mobile-pad, .mobile-pad * { -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; }
-    #screen, .mobile-pad button { -webkit-user-drag:none; user-drag:none; }
-  </style>
+  /* === Overlay (Game Over + Leaderboard) === */
+  .overlay {
+    position: fixed; inset: 0;
+    display:none; align-items:center; justify-content:center;
+    background: rgba(0,0,0,.6); z-index: 9999;
+  }
+  .overlay.show { display:flex; }
+  .card {
+    width:min(540px, 94vw); max-height:90vh; overflow:auto;
+    background: #101010; color:var(--fg); border:2px solid var(--fg); border-radius:8px; padding:16px;
+    box-shadow: 0 10px 40px rgba(0,0,0,.6);
+  }
+  .card h2 { margin:0 0 10px; color:var(--accent); font-size:20px; }
+  .big { font-size:36px; font-weight:700; color:var(--accent); margin-bottom:8px; }
+  .ranklist { margin:8px 0 12px; padding:0; list-style:none; border-top:1px solid var(--fg); border-bottom:1px solid var(--fg); }
+  .ranklist li { display:flex; justify-content:space-between; padding:6px 2px; border-bottom:1px dashed #333; }
+  .ranklist li:last-child { border-bottom:none; }
+  .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .row input {
+    border:2px solid var(--fg); background:#0b0b0b; color:var(--fg); border-radius:4px; padding:6px 8px; font-family:inherit; font-size:14px;
+  }
+  .row button { font-size:12px; padding:8px 10px; }
+  .note { color:var(--muted); font-size:11px; }
+</style>
 </head>
 <body data-theme="gb">
   <div class="wrap">
@@ -90,18 +108,12 @@
 
     <canvas id="screen" aria-label="game screen" role="img"></canvas>
 
-    <!-- 左: DPAD / 右: A,B -->
+    <!-- Controller -->
     <div class="mobile-pad" id="mobilePad" aria-label="virtual controls">
       <div class="dpad" aria-label="dpad left">
-        <span class="spacer"></span>
-        <button id="dpadUp">▲</button>
-        <span class="spacer"></span>
-        <button id="dpadLeft">◀</button>
-        <span class="spacer"></span>
-        <button id="dpadRight">▶</button>
-        <span class="spacer"></span>
-        <button id="dpadDown">▼</button>
-        <span class="spacer"></span>
+        <span class="spacer"></span><button id="dpadUp">▲</button><span class="spacer"></span>
+        <button id="dpadLeft">◀</button><span class="spacer"></span><button id="dpadRight">▶</button>
+        <span class="spacer"></span><button id="dpadDown">▼</button><span class="spacer"></span>
       </div>
       <div class="buttons" aria-label="action buttons right">
         <button id="btnA">A</button>
@@ -114,365 +126,366 @@
     </footer>
   </div>
 
-  <script>
-    // ===== DOM =====
-    const $ = (id) => document.getElementById(id);
-    const startBtn = $('btnStart');
-    const resetBtn = $('btnReset');
-    const scoreEl = $('score');
-    const livesEl = $('lives');
-    const levelEl = $('level');
-    const multEl  = $('mult');
-    const powerEl = $('powerBadges');
-    const fpsEl   = $('fps');
-    const panel   = $('scorePanel');
-    const canvas  = $('screen');
-    const ctx     = canvas.getContext('2d');
+  <!-- === Overlay: GameOver + Leaderboard === -->
+  <div class="overlay" id="overlay">
+    <div class="card">
+      <h2>GAME OVER</h2>
+      <div class="big">SCORE: <span id="finalScore">0</span></div>
 
-    // ===== CSSカラー（var()を解決） =====
-    const CSSV = getComputedStyle(document.documentElement);
-    const COLOR = {
-      brick : CSSV.getPropertyValue('--brick').trim()  || '#d04040',
-      brick2: CSSV.getPropertyValue('--brick2').trim() || '#40a040',
-      brick3: CSSV.getPropertyValue('--brick3').trim() || '#4060d0',
-      green : CSSV.getPropertyValue('--green').trim()  || '#50c878',
-      yellow: CSSV.getPropertyValue('--yellow').trim() || '#f0e68c',
-      fg    : CSSV.getPropertyValue('--fg').trim()     || '#e0e0c0',
-      bg    : CSSV.getPropertyValue('--bg').trim()     || '#1a1a1a'
-    };
+      <h3 style="margin:10px 0 6px;">Top 10</h3>
+      <ul class="ranklist" id="rankList"></ul>
 
-    // ===== World =====
-    let W=480, H=720;
-    const STEP=1/120; let playing=false, last=performance.now(), acc=0, time=0;
-    const PADDLE = { w:104, h:16, speed:600, minW:64, maxW:240 };
-    const BALL   = { r:8, baseSpeed:480 };
-    const WALL   = { pad:10 };
+      <div id="entryRow" class="row" style="display:none;">
+        <input id="playerName" maxlength="16" placeholder="Your name (max 16)" />
+        <button id="btnSubmit">Submit</button>
+      </div>
 
-    let score=0, lives=3, level=1;
-    let multiplier=1.0;           // ★ヒットごと上昇
-    const MULT_INC = 0.10;        // +0.10
-    const MULT_MAX = 5.00;        // 上限
+      <div class="row" style="margin-top:10px;">
+        <button id="btnPlayAgain">Play Again</button>
+        <span id="syncStatus" class="note"></span>
+      </div>
+      <p class="note" style="margin-top:8px;">
+        ランキングはローカル保存（この端末のみ）＋任意でGoogleスプレッドシート連携に対応。
+      </p>
+    </div>
+  </div>
 
-    // ===== Input =====
-    const keys=new Set();
-    window.addEventListener('keydown', (e)=>{ if(["ArrowLeft","ArrowRight"," ","p","P"].includes(e.key)) e.preventDefault(); keys.add(e.key); });
-    window.addEventListener('keyup',   (e)=>{ keys.delete(e.key); });
+<script>
+/* ========= DOM ========= */
+const $ = id => document.getElementById(id);
+const startBtn=$('btnStart'), resetBtn=$('btnReset');
+const scoreEl=$('score'), livesEl=$('lives'), levelEl=$('level'), multEl=$('mult'), powerEl=$('powerBadges'), fpsEl=$('fps');
+const panel=$('scorePanel'), canvas=$('screen'), ctx=canvas.getContext('2d');
+const overlay=$('overlay'), finalScoreEl=$('finalScore'), rankList=$('rankList');
+const entryRow=$('entryRow'), nameInput=$('playerName'), submitBtn=$('btnSubmit'), playAgainBtn=$('btnPlayAgain'), syncStatus=$('syncStatus');
 
-    const mobile={left:false,right:false,launch:false};
-    function bindHold(btnId,on,off){
-      const b=$(btnId); if(!b) return;
-      const d=e=>{e.preventDefault();on();};
-      const u=e=>{e.preventDefault();off();};
-      b.addEventListener('pointerdown',d,{passive:false});
-      b.addEventListener('pointerup',u,{passive:false});
-      b.addEventListener('pointerleave',u,{passive:false});
-      b.addEventListener('pointercancel',u,{passive:false});
+/* ========= Colors (CSS var resolve) ========= */
+const CSSV=getComputedStyle(document.documentElement);
+const COLOR={
+  brick: CSSV.getPropertyValue('--brick').trim()||'#d04040',
+  brick2:CSSV.getPropertyValue('--brick2').trim()||'#40a040',
+  brick3:CSSV.getPropertyValue('--brick3').trim()||'#4060d0',
+  green: CSSV.getPropertyValue('--green').trim()||'#50c878',
+  yellow:CSSV.getPropertyValue('--yellow').trim()||'#f0e68c',
+  fg:    CSSV.getPropertyValue('--fg').trim()||'#e0e0c0',
+  bg:    CSSV.getPropertyValue('--bg').trim()||'#1a1a1a'
+};
+
+/* ========= World ========= */
+let W=480,H=720, STEP=1/120, playing=false, last=performance.now(), acc=0, time=0;
+const PADDLE={w:104,h:16,speed:600,minW:64,maxW:240};
+const BALL={r:8,baseSpeed:480};
+const WALL={pad:10};
+let score=0,lives=3,level=1, multiplier=1.0, MULT_INC=0.10, MULT_MAX=5.00;
+
+/* ========= Input ========= */
+const keys=new Set();
+window.addEventListener('keydown',e=>{ if(["ArrowLeft","ArrowRight"," ","p","P"].includes(e.key)) e.preventDefault(); keys.add(e.key);});
+window.addEventListener('keyup',e=>keys.delete(e.key));
+const mobile={left:false,right:false,launch:false};
+function bindHold(id,on,off){ const b=$(id); if(!b) return; const d=e=>{e.preventDefault();on();}; const u=e=>{e.preventDefault();off();}; b.addEventListener('pointerdown',d,{passive:false}); ["pointerup","pointerleave","pointercancel"].forEach(ev=>b.addEventListener(ev,u,{passive:false})); }
+bindHold('dpadLeft',()=>mobile.left=true,()=>mobile.left=false);
+bindHold('dpadRight',()=>mobile.right=true,()=>mobile.right=false);
+bindHold('dpadUp',()=>{},()=>{}); bindHold('dpadDown',()=>{},()=>{});
+$('btnA')?.addEventListener('pointerdown',e=>{e.preventDefault(); mobile.launch=true;},{passive:false});
+$('btnB')?.addEventListener('pointerdown',e=>{e.preventDefault(); playing=!playing; startBtn.textContent=playing?'⏸':'▶︎';},{passive:false});
+$('mobilePad')?.querySelectorAll('button').forEach(btn=>{ btn.addEventListener('pointerdown',()=>btn.classList.add('pressed')); ["pointerup","pointerleave","pointercancel"].forEach(ev=>btn.addEventListener(ev,()=>btn.classList.remove('pressed'))); });
+
+/* ========= SFX ========= */
+let actx; function beep(freq=660,dur=0.05,type='square'){ try{ actx=actx||new (window.AudioContext||window.webkitAudioContext)(); const o=actx.createOscillator(), g=actx.createGain(); o.type=type; o.frequency.value=freq; o.connect(g); g.connect(actx.destination); g.gain.setValueAtTime(0.08, actx.currentTime); g.gain.exponentialRampToValueAtTime(0.0001, actx.currentTime+dur); o.start(); o.stop(actx.currentTime+dur);}catch(_){ } }
+
+/* ========= Entities ========= */
+const paddle={x:0,y:0,w:PADDLE.w,h:PADDLE.h};
+function newBall(){ return {x:paddle.x+paddle.w/2,y:paddle.y-BALL.r-1,vx:0,vy:0,r:BALL.r,stuck:true,trail:[]}; }
+let balls=[newBall()];
+const BR={cols:10,rows:9,pad:6,h:18}; let bricks=[];
+const PU_TYPES=['E','S','M','L']; let powerups=[]; const effects={expand:0,slow:0};
+
+function makeLevel(n){
+  bricks.length=0;
+  const margin=WALL.pad, usableW=W-margin*2;
+  const bw=Math.floor((usableW-(BR.cols-1)*BR.pad)/BR.cols);
+  const top=Math.max(36,Math.round(H*0.08));
+  for(let r=0;r<BR.rows;r++){
+    for(let c=0;c<BR.cols;c++){
+      const x=margin + c*(bw+BR.pad), y=top + r*(BR.h+BR.pad);
+      let hp=1 + (r>>1) + Math.floor((n-1)/2);
+      const color = r<3? COLOR.brick : r<6? COLOR.brick2 : COLOR.brick3;
+      if(color===COLOR.brick3) hp=1; // 青は常に1発
+      bricks.push({x,y,w:bw,h:BR.h,hp,alive:true,color});
     }
-    // 旧ボタン（互換）
-    $('btnLaunch')?.addEventListener('pointerdown', e=>{e.preventDefault(); mobile.launch=true;},{passive:false});
-    // DPAD/AB
-    bindHold('dpadLeft', ()=>mobile.left=true,  ()=>mobile.left=false);
-    bindHold('dpadRight',()=>mobile.right=true, ()=>mobile.right=false);
-    bindHold('dpadUp',   ()=>{}, ()=>{});
-    bindHold('dpadDown', ()=>{}, ()=>{});
-    const btnA=$('btnA'); btnA?.addEventListener('pointerdown', e=>{ e.preventDefault(); mobile.launch=true; }, {passive:false});
-    const btnB=$('btnB'); btnB?.addEventListener('pointerdown', e=>{ e.preventDefault(); playing=!playing; startBtn.textContent=playing?'⏸':'▶︎'; }, {passive:false});
-    // 押下ビジュアル
-    $('mobilePad')?.querySelectorAll('button').forEach(btn=>{
-      btn.addEventListener('pointerdown', ()=>btn.classList.add('pressed'));
-      ['pointerup','pointerleave','pointercancel'].forEach(ev=>btn.addEventListener(ev, ()=>btn.classList.remove('pressed')));
+  }
+}
+function resetBallAndPaddle(){ balls=[newBall()]; }
+function launchBallAll(){ for(const b of balls){ if(b.stuck){ const ang=(-60+Math.random()*20)*Math.PI/180; const sp=BALL.baseSpeed*(effects.slow>0?0.7:1); b.vx=Math.cos(ang)*sp; b.vy=Math.sin(ang)*sp; b.stuck=false; b.trail.length=0; } } beep(880,0.05,'square'); }
+
+const clamp=(v,a,b)=>Math.min(Math.max(v,a),b);
+function circleRectHit(cx,cy,cr, rx,ry,rw,rh){ const nx=clamp(cx,rx,rx+rw), ny=clamp(cy,ry,ry+rh); const dx=cx-nx, dy=cy-ny; return (dx*dx+dy*dy)<=cr*cr; }
+function reflectCircleFromRect(cx,cy,r, vx,vy, rx,ry,rw,rh){ const nx=clamp(cx,rx,rx+rw), ny=clamp(cy,ry,ry+rh); const dx=cx-nx, dy=cy-ny; if(Math.abs(dx)>Math.abs(dy)) return {vx:-vx, vy}; if(Math.abs(dy)>Math.abs(dx)) return {vx, vy:-vy}; return {vx:-vx, vy:-vy}; }
+let particles=[]; function burst(x,y,color){ for(let i=0;i<8;i++) particles.push({x,y,vx:(Math.random()*2-1)*120,vy:(Math.random()*2-1)*120,life:0.35,color}); }
+function spawnPowerUp(x,y){ if(Math.random()<0.22){ const type=PU_TYPES[Math.floor(Math.random()*PU_TYPES.length)]; powerups.push({x,y,v:120,type,alive:true}); } }
+function applyPowerUp(t){ if(t==='E'){ effects.expand=12; paddle.w=clamp(Math.round(paddle.w*1.5),PADDLE.minW,PADDLE.maxW); beep(660,0.08,'square'); } if(t==='S'){ effects.slow=8; for(const b of balls){ b.vx*=0.7; b.vy*=0.7; } beep(330,0.08,'sine'); } if(t==='M'){ const clones=[]; for(const b of balls){ if(!b.stuck){ clones.push({x:b.x,y:b.y,vx:-b.vx,vy:b.vy,r:b.r,stuck:false,trail:[]}); } } balls.push(...clones); beep(520,0.08,'triangle'); } if(t==='L'){ lives++; livesEl.textContent=String(lives); beep(990,0.08,'square'); } updateBadges(); }
+function updateBadges(){ const tags=[]; if(effects.expand>0) tags.push('E'); if(effects.slow>0) tags.push('S'); powerEl.textContent=tags.length?('POWER:'+tags.join(',')):'NO POWER'; multEl.textContent=multiplier.toFixed(2); }
+
+/* ========= Leaderboard (Local + Optional Remote) ========= */
+// ★ Apps Script の Web アプリ公開URL（後述の手順）をここに入れるとグローバル共有に。
+const LEADERBOARD_ENDPOINT = ''; // 例: 'https://script.google.com/macros/s/AKfycbxxx/exec'
+const LB_LOCAL_KEY = 'bb_local_scores_v1';
+const LB_LIMIT = 10;
+
+function loadLocalScores(){
+  try{ return JSON.parse(localStorage.getItem(LB_LOCAL_KEY)||'[]'); }catch(_){ return []; }
+}
+function saveLocalScores(arr){
+  localStorage.setItem(LB_LOCAL_KEY, JSON.stringify(arr.slice(0,LB_LIMIT)));
+}
+async function fetchGlobalScores(){
+  if(!LEADERBOARD_ENDPOINT) return null;
+  try{
+    const r = await fetch(LEADERBOARD_ENDPOINT+'?mode=list', {cache:'no-store'});
+    if(!r.ok) throw new Error('fetch fail');
+    const data = await r.json(); // [{name,score,ts}]
+    return Array.isArray(data) ? data.slice(0,LB_LIMIT) : null;
+  }catch(e){ console.warn('global list failed', e); return null; }
+}
+async function submitGlobalScore(name,score){
+  if(!LEADERBOARD_ENDPOINT) return {ok:false};
+  try{
+    const r = await fetch(LEADERBOARD_ENDPOINT, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({mode:'submit', name, score, ts: Date.now()})
     });
+    const res = await r.json();
+    return {ok: !!res?.ok};
+  }catch(e){ console.warn('global submit failed', e); return {ok:false}; }
+}
+function mergeAndTrim(localArr, add){ // ローカルのみで順位判定に使う
+  const arr=[...localArr, add].sort((a,b)=>b.score-a.score).slice(0,LB_LIMIT);
+  return arr;
+}
 
-    // ===== SFX（簡易ビープ） =====
-    let actx;
-    function beep(freq=660, dur=0.05, type='square'){
-      try{
-        actx=actx||new (window.AudioContext||window.webkitAudioContext)();
-        const o=actx.createOscillator(), g=actx.createGain();
-        o.type=type; o.frequency.value=freq; o.connect(g); g.connect(actx.destination);
-        g.gain.setValueAtTime(0.08, actx.currentTime);
-        g.gain.exponentialRampToValueAtTime(0.0001, actx.currentTime+dur);
-        o.start(); o.stop(actx.currentTime+dur);
-      }catch(_){}
+/* ========= Game Over Overlay ========= */
+function qualifiesLocal(finalScore){
+  const arr=loadLocalScores();
+  if(arr.length<LB_LIMIT) return true;
+  const min=arr[arr.length-1]?.score??-Infinity;
+  return finalScore>min;
+}
+function renderRankList(items){
+  rankList.innerHTML = items.map((r,i)=>`<li><span>#${i+1}. ${r.name||'---'}</span><strong>${r.score}</strong></li>`).join('') || '<li>No records</li>';
+}
+async function showGameOver(finalScore){
+  playing=false; startBtn.textContent='▶︎';
+  finalScoreEl.textContent=String(finalScore);
+  overlay.classList.add('show');
+  syncStatus.textContent = LEADERBOARD_ENDPOINT ? 'Syncing…' : '（ローカル保存のみ。スプレッドシート連携は後述URL設定）';
+
+  // まずローカルTop10を表示
+  let local = loadLocalScores().sort((a,b)=>b.score-a.score).slice(0,LB_LIMIT);
+  renderRankList(local);
+
+  // グローバルがあれば取得して表示
+  let global = await fetchGlobalScores();
+  if(global){ renderRankList(global); syncStatus.textContent='Global Top10'; }
+  else if(LEADERBOARD_ENDPOINT){ syncStatus.textContent='グローバル取得失敗（ネット/設定要確認）'; }
+
+  // ランキング入りしたら入力欄を出す
+  entryRow.style.display = qualifiesLocal(finalScore) ? 'flex' : 'none';
+  if(entryRow.style.display!=='none'){ nameInput.value=''; nameInput.focus(); }
+
+  // 送信
+  submitBtn.onclick = async ()=>{
+    const name = (nameInput.value||'NONAME').slice(0,16);
+    // ローカル反映
+    local = mergeAndTrim(loadLocalScores(), {name, score:finalScore, ts:Date.now()});
+    saveLocalScores(local);
+    renderRankList(local);
+    entryRow.style.display='none';
+    syncStatus.textContent='Saved locally.';
+
+    // グローバル送信
+    if(LEADERBOARD_ENDPOINT){
+      syncStatus.textContent='Submitting to global…';
+      const ok = (await submitGlobalScore(name, finalScore)).ok;
+      if(ok){
+        syncStatus.textContent='Submitted. Refreshing global…';
+        const g = await fetchGlobalScores();
+        if(g){ renderRankList(g); syncStatus.textContent='Global Top10'; }
+        else { syncStatus.textContent='送信OK／取得失敗'; }
+      }else{
+        syncStatus.textContent='グローバル送信失敗（設定/権限を確認）';
+      }
     }
+  };
 
-    // ===== Entities =====
-    const paddle={x:0,y:0,w:PADDLE.w,h:PADDLE.h};
-    function newBall(){ return {x:paddle.x+paddle.w/2,y:paddle.y-BALL.r-1,vx:0,vy:0,r:BALL.r,stuck:true,trail:[]}; }
-    let balls=[newBall()];
+  playAgainBtn.onclick = ()=>{
+    overlay.classList.remove('show');
+    score=0; level=1; lives=3; multiplier=1.0;
+    scoreEl.textContent='0'; levelEl.textContent='1'; livesEl.textContent='3'; multEl.textContent='1.00';
+    powerups.length=0; particles.length=0; paddle.w=PADDLE.w;
+    makeLevel(level); resetBallAndPaddle(); updateBadges();
+    requestAnimationFrame(()=>{ playing=true; startBtn.textContent='⏸'; });
+  };
+}
 
-    const BR={cols:10, rows:9, pad:6, h:18};
-    let bricks=[]; // {x,y,w,h,hp,color,alive}
+/* ========= Step / Render ========= */
+function step(dt){
+  time+=dt;
+  if(effects.expand>0){ effects.expand-=dt; if(effects.expand<=0){ paddle.w=clamp(PADDLE.w,PADDLE.minW,PADDLE.maxW); }}
+  if(effects.slow>0){ effects.slow-=dt; }
 
-    const PU_TYPES=['E','S','M','L'];
-    let powerups=[]; // {x,y,v,type,alive}
-    const effects={expand:0,slow:0};
+  let vx=0; if(keys.has('ArrowLeft')||mobile.left) vx-=PADDLE.speed; if(keys.has('ArrowRight')||mobile.right) vx+=PADDLE.speed;
+  paddle.x=clamp(paddle.x+vx*dt, WALL.pad, W-WALL.pad-paddle.w);
 
-    function makeLevel(n){
-      bricks.length=0;
-      const margin=WALL.pad, usableW=W-margin*2;
-      const bw = Math.floor((usableW - (BR.cols-1)*BR.pad) / BR.cols);
-      const top = Math.max(36, Math.round(H*0.08));
-      for(let r=0;r<BR.rows;r++){
-        for(let c=0;c<BR.cols;c++){
-          const x=margin + c*(bw+BR.pad);
-          const y=top + r*(BR.h+BR.pad);
-          let hp = 1 + (r>>1) + Math.floor((n-1)/2);
-          const color = r<3? COLOR.brick : r<6? COLOR.brick2 : COLOR.brick3;
-          if(color===COLOR.brick3) hp = 1; // ★青は常に1発破壊
-          bricks.push({x,y,w:bw,h:BR.h,hp,alive:true,color});
+  if(keys.has(' ')||mobile.launch){ launchBallAll(); mobile.launch=false; }
+  if(keys.has('p')||keys.has('P')){ playing=false; keys.delete('p'); keys.delete('P'); startBtn.textContent='▶︎'; }
+
+  for(const b of balls){
+    if(b.stuck){ b.x=paddle.x+paddle.w/2; b.y=paddle.y-b.r-1; b.trail.length=0; continue; }
+    b.trail.push({x:b.x,y:b.y,life:0.25}); if(b.trail.length>14) b.trail.shift(); for(const t of b.trail){ t.life-=dt; }
+    b.x+=b.vx*dt; b.y+=b.vy*dt;
+    if(b.x-b.r<=WALL.pad){ b.x=WALL.pad+b.r; b.vx*=-1; beep(440,0.02); }
+    if(b.x+b.r>=W-WALL.pad){ b.x=W-WALL.pad-b.r; b.vx*=-1; beep(440,0.02); }
+    if(b.y-b.r<=WALL.pad){ b.y=WALL.pad+b.r; b.vy*=-1; beep(440,0.02); }
+    if(b.y-b.r>H){
+      balls.splice(balls.indexOf(b),1);
+      if(balls.length===0){
+        multiplier=1.0; updateBadges();
+        lives--; livesEl.textContent=String(lives);
+        if(lives<=0){
+          // ★ ゲームオーバー：オーバーレイを出す
+          const finalScore=score;
+          level=1; score=0; lives=3;
+          levelEl.textContent='1'; scoreEl.textContent='0'; livesEl.textContent='3';
+          makeLevel(level);
+          resetBallAndPaddle();
+          showGameOver(finalScore);
+          return;
         }
+        resetBallAndPaddle();
+      }
+      break;
+    }
+    if(circleRectHit(b.x,b.y,b.r, paddle.x,paddle.y,paddle.w,paddle.h) && b.vy>0){
+      const hit=((b.x-(paddle.x+paddle.w/2))/(paddle.w/2));
+      const ang=(-75+60*hit)*Math.PI/180;
+      const sp=Math.hypot(b.vx,b.vy);
+      b.vx=Math.cos(ang)*sp; b.vy=Math.sin(ang)*sp;
+      b.y=paddle.y-b.r-1; beep(620,0.03);
+    }
+  }
+
+  // bricks
+  outer: for(const b of balls){
+    if(b.stuck) continue;
+    for(const br of bricks){
+      if(!br.alive) continue;
+      if(circleRectHit(b.x,b.y,b.r, br.x,br.y,br.w,br.h)){
+        const r=reflectCircleFromRect(b.x,b.y,b.r,b.vx,b.vy,br.x,br.y,br.w,br.h);
+        b.vx=r.vx; b.vy=r.vy; br.hp--; burst(b.x,b.y,br.color); beep(800,0.03,'triangle');
+        multiplier=Math.min(MULT_MAX, +(multiplier+MULT_INC).toFixed(2)); updateBadges();
+        if(br.hp<=0){ br.alive=false; const add=Math.round(50*multiplier); score+=add; scoreEl.textContent=String(score); spawnPowerUp(br.x+br.w/2, br.y+br.h/2); }
+        break outer;
       }
     }
+  }
 
-    function resetBallAndPaddle(){ balls=[newBall()]; }
-    function launchBallAll(){
-      for(const b of balls){
-        if(b.stuck){
-          const angle=(-60+Math.random()*20)*Math.PI/180;
-          const sp = BALL.baseSpeed*(effects.slow>0?0.7:1);
-          b.vx=Math.cos(angle)*sp; b.vy=Math.sin(angle)*sp;
-          b.stuck=false; b.trail.length=0;
-        }
-      }
-      beep(880,0.05,'square');
-    }
+  // powerups
+  for(const p of powerups){ if(!p.alive) continue; p.y+=p.v*dt; if(p.y>H+20) p.alive=false; if(circleRectHit(p.x,p.y,10, paddle.x,paddle.y,paddle.w,paddle.h)){ p.alive=false; applyPowerUp(p.type); } }
+  powerups=powerups.filter(p=>p.alive!==false);
 
-    // ===== Collision helpers =====
-    const clamp=(v,a,b)=>Math.min(Math.max(v,a),b);
-    function circleRectHit(cx,cy,cr, rx,ry,rw,rh){
-      const nx=clamp(cx,rx,rx+rw), ny=clamp(cy,ry,ry+rh);
-      const dx=cx-nx, dy=cy-ny; return (dx*dx+dy*dy)<=cr*cr;
-    }
-    function reflectCircleFromRect(cx,cy,r, vx,vy, rx,ry,rw,rh){
-      const nx=clamp(cx,rx,rx+rw), ny=clamp(cy,ry,ry+rh);
-      const dx=cx-nx, dy=cy-ny;
-      if(Math.abs(dx)>Math.abs(dy)) return {vx:-vx, vy};
-      if(Math.abs(dy)>Math.abs(dx)) return {vx, vy:-vy};
-      return {vx:-vx, vy:-vy};
-    }
+  // particles
+  for(const pt of particles){ pt.x+=pt.vx*dt; pt.y+=pt.vy*dt; pt.vx*=0.98; pt.vy*=0.98; pt.life-=dt; }
+  particles=particles.filter(pt=>pt.life>0);
 
-    // Particles
-    let particles=[];
-    function burst(x,y,color){
-      for(let i=0;i<8;i++)
-        particles.push({x,y,vx:(Math.random()*2-1)*120,vy:(Math.random()*2-1)*120,life:0.35,color});
-    }
+  if(bricks.every(b=>!b.alive)){ level++; levelEl.textContent=String(level); makeLevel(level); resetBallAndPaddle(); }
+  updateBadges();
+}
 
-    function spawnPowerUp(x,y){
-      if(Math.random()<0.22){
-        const type=PU_TYPES[Math.floor(Math.random()*PU_TYPES.length)];
-        powerups.push({x,y,v:120,type,alive:true});
-      }
-    }
-    function applyPowerUp(type){
-      if(type==='E'){ effects.expand=12; paddle.w=clamp(Math.round(paddle.w*1.5),PADDLE.minW,PADDLE.maxW); beep(660,0.08,'square'); }
-      if(type==='S'){ effects.slow=8; for(const b of balls){ b.vx*=0.7; b.vy*=0.7; } beep(330,0.08,'sine'); }
-      if(type==='M'){ const clones=[]; for(const b of balls){ if(!b.stuck){ clones.push({x:b.x,y:b.y,vx:-b.vx,vy:b.vy,r:b.r,stuck:false,trail:[]}); } } balls.push(...clones); beep(520,0.08,'triangle'); }
-      if(type==='L'){ lives++; livesEl.textContent=String(lives); beep(990,0.08,'square'); }
-      updateBadges();
-    }
-    function updateBadges(){
-      const tags=[]; if(effects.expand>0) tags.push('E'); if(effects.slow>0) tags.push('S');
-      powerEl.textContent=tags.length?('POWER:'+tags.join(',')):'NO POWER';
-      multEl.textContent=multiplier.toFixed(2);
-    }
+function drawBackground(){ ctx.fillStyle=COLOR.bg; ctx.fillRect(0,0,W,H); ctx.strokeStyle=COLOR.fg; ctx.lineWidth=2; ctx.strokeRect(WALL.pad+1,WALL.pad+1, W-2*WALL.pad-2, H-2*WALL.pad-2); }
+function rrect(x,y,w,h){ ctx.fillRect(x,y,w,h); }
+function drawPaddle(){ ctx.fillStyle=COLOR.fg; rrect(paddle.x,paddle.y,paddle.w,paddle.h); }
+function drawBalls(){ ctx.fillStyle=COLOR.fg; for(const b of balls){ for(const t of b.trail){ const a=Math.max(0,t.life/0.25); if(a<=0) continue; ctx.globalAlpha=a*0.6; ctx.fillRect(Math.round(t.x)-2, Math.round(t.y)-2, 4, 4);} ctx.globalAlpha=1; ctx.fillRect(Math.round(b.x)-2, Math.round(b.y)-2, 4, 4);} }
+function drawBricks(){ for(const br of bricks){ if(!br.alive) continue; ctx.fillStyle=br.color; rrect(br.x,br.y,br.w,br.h); ctx.strokeStyle=COLOR.fg; ctx.lineWidth=1; ctx.strokeRect(br.x+0.5,br.y+0.5,br.w-1,br.h-1);} }
+function drawPowerUps(){ for(const p of powerups){ ctx.fillStyle = p.type==='E'? COLOR.green : p.type==='S'? COLOR.yellow : '#88b0ff'; ctx.fillRect(p.x-6,p.y-6,12,12); ctx.fillStyle = COLOR.bg; ctx.font='10px ui-monospace, monospace'; ctx.fillText(p.type, p.x-3, p.y+3); } }
+function drawParticles(){ ctx.fillStyle=COLOR.fg; for(const pt of particles){ ctx.globalAlpha=Math.max(0,pt.life/0.35); ctx.fillRect(pt.x,pt.y,2,2);} ctx.globalAlpha=1; }
+function render(){ ctx.clearRect(0,0,W,H); drawBackground(); drawBricks(); drawPaddle(); drawBalls(); drawPowerUps(); drawParticles(); }
 
-    // ===== Game Step =====
-    function step(dt){
-      time+=dt;
-      if(effects.expand>0){ effects.expand-=dt; if(effects.expand<=0){ paddle.w=clamp(PADDLE.w,PADDLE.minW,PADDLE.maxW); }}
-      if(effects.slow>0){ effects.slow-=dt; }
+/* ========= Loop / FPS ========= */
+let fpsCount=0, fpsTime=performance.now();
+function fpsTick(){ fpsCount++; const now=performance.now(); if(now-fpsTime>=500){ const fps=Math.round(1000*fpsCount/(now-fpsTime)); fpsEl.textContent=String(fps); fpsTime=now; fpsCount=0; } }
+function loop(t){ if(!playing){ last=t; requestAnimationFrame(loop); return; } let dt=(t-last)/1000; last=t; dt=Math.min(dt,0.05); acc+=dt; while(acc>=STEP){ step(STEP); acc-=STEP; } render(); fpsTick(); requestAnimationFrame(loop); }
 
-      // input
-      let vx=0;
-      if(keys.has('ArrowLeft')||mobile.left)  vx-=PADDLE.speed;
-      if(keys.has('ArrowRight')||mobile.right) vx+=PADDLE.speed;
-      paddle.x=clamp(paddle.x+vx*dt, WALL.pad, W-WALL.pad-paddle.w);
+/* ========= Responsive (auto scale; no-scroll) ========= */
+function syncCanvasSize(){
+  const dpr=Math.max(1,Math.min(3,window.devicePixelRatio||1));
+  const panelW=Math.floor(panel.getBoundingClientRect().width);
+  const vh=(window.visualViewport?.height)||window.innerHeight;
 
-      if(keys.has(' ')||mobile.launch){ launchBallAll(); mobile.launch=false; }
-      if(keys.has('p')||keys.has('P')){ playing=false; keys.delete('p'); keys.delete('P'); startBtn.textContent='▶︎'; }
+  const headerH=document.querySelector('header')?.offsetHeight||0;
+  const hudH=panel?.offsetHeight||0;
+  const footerH=document.querySelector('footer')?.offsetHeight||0;
 
-      // balls
-      for(const b of balls){
-        if(b.stuck){ b.x=paddle.x+paddle.w/2; b.y=paddle.y-b.r-1; b.trail.length=0; continue; }
-        b.trail.push({x:b.x,y:b.y,life:0.25}); if(b.trail.length>14) b.trail.shift();
-        for(const t of b.trail){ t.life-=dt; }
-        b.x+=b.vx*dt; b.y+=b.vy*dt;
-        if(b.x-b.r<=WALL.pad){ b.x=WALL.pad+b.r; b.vx*=-1; beep(440,0.02); }
-        if(b.x+b.r>=W-WALL.pad){ b.x=W-WALL.pad-b.r; b.vx*=-1; beep(440,0.02); }
-        if(b.y-b.r<=WALL.pad){ b.y=WALL.pad+b.r; b.vy*=-1; beep(440,0.02); }
-        if(b.y-b.r>H){
-          balls.splice(balls.indexOf(b),1);
-          if(balls.length===0){
-            // ★ミス：倍率リセット
-            multiplier = 1.0; updateBadges();
-            lives--; livesEl.textContent=String(lives);
-            if(lives<=0){ level=1; score=0; lives=3; levelEl.textContent='1'; scoreEl.textContent='0'; livesEl.textContent='3'; makeLevel(level); }
-            resetBallAndPaddle();
-          }
-          break;
-        }
-        if(circleRectHit(b.x,b.y,b.r, paddle.x,paddle.y,paddle.w,paddle.h) && b.vy>0){
-          const hit=((b.x-(paddle.x+paddle.w/2))/(paddle.w/2));
-          const ang=(-75+60*hit)*Math.PI/180;
-          const sp=Math.hypot(b.vx,b.vy);
-          b.vx=Math.cos(ang)*sp; b.vy=Math.sin(ang)*sp;
-          b.y=paddle.y-b.r-1; beep(620,0.03);
-        }
-      }
+  // まず等倍でDPAD高さを測る
+  document.documentElement.style.setProperty('--pad-scale','1');
+  const padEl=$('mobilePad'); const padH_ideal=padEl?.offsetHeight||0;
 
-      // bricks & score / multiplier
-      outer: for(const b of balls){
-        if(b.stuck) continue;
-        for(const br of bricks){
-          if(!br.alive) continue;
-          if(circleRectHit(b.x,b.y,b.r, br.x,br.y,br.w,br.h)){
-            const r=reflectCircleFromRect(b.x,b.y,b.r,b.vx,b.vy,br.x,br.y,br.w,br.h);
-            b.vx=r.vx; b.vy=r.vy; br.hp--;
-            burst(b.x,b.y,br.color); beep(800,0.03,'triangle');
-            // ★ヒット毎に倍率上昇
-            multiplier = Math.min(MULT_MAX, +(multiplier + MULT_INC).toFixed(2)); updateBadges();
-            if(br.hp<=0){
-              br.alive=false;
-              const add=Math.round(50*multiplier);
-              score+=add; scoreEl.textContent=String(score);
-              spawnPowerUp(br.x+br.w/2, br.y+br.h/2);
-            }
-            break outer;
-          }
-        }
-      }
+  const byRatio=Math.round(panelW*1.5);
+  const by75=Math.floor(vh*0.75);
+  const availFirst=Math.max(240, vh - headerH - hudH - footerH - padH_ideal - 12);
+  let targetH=Math.min(byRatio,by75,availFirst);
 
-      // powerups
-      for(const p of powerups){
-        if(!p.alive) continue; p.y+=p.v*dt; if(p.y>H+20) p.alive=false;
-        if(circleRectHit(p.x,p.y,10, paddle.x,paddle.y,paddle.w,paddle.h)){
-          p.alive=false; applyPowerUp(p.type);
-        }
-      }
-      powerups=powerups.filter(p=>p.alive!==false);
+  // はみ出すならDPAD縮小（0.6〜1）
+  let need=(headerH+hudH+footerH+padH_ideal+targetH+12)-vh;
+  if(need>0 && padH_ideal>0){
+    const scale=Math.max(0.6, Math.min(1, 1 - (need/padH_ideal)));
+    document.documentElement.style.setProperty('--pad-scale', String(scale));
+    const padH_scaled=padEl?.offsetHeight||Math.round(padH_ideal*scale);
+    const avail=Math.max(240, vh - headerH - hudH - footerH - padH_scaled - 12);
+    targetH=Math.min(byRatio,by75,avail);
+  }
 
-      // particles
-      for(const pt of particles){ pt.x+=pt.vx*dt; pt.y+=pt.vy*dt; pt.vx*=0.98; pt.vy*=0.98; pt.life-=dt; }
-      particles=particles.filter(pt=>pt.life>0);
+  canvas.style.width=panelW+'px'; canvas.style.height=targetH+'px';
+  canvas.width=Math.round(panelW*dpr); canvas.height=Math.round(targetH*dpr);
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  W=Math.round(canvas.width/dpr); H=Math.round(canvas.height/dpr);
 
-      // clear
-      if(bricks.every(b=>!b.alive)){ level++; levelEl.textContent=String(level); makeLevel(level); resetBallAndPaddle(); }
-      updateBadges();
-    }
+  paddle.w=clamp(paddle.w||PADDLE.w,PADDLE.minW,PADDLE.maxW);
+  paddle.h=PADDLE.h; paddle.x=clamp(paddle.x||(W/2-paddle.w/2),WALL.pad,W-WALL.pad-paddle.w); paddle.y=Math.round(H-56);
 
-    // ===== Render =====
-    function drawBackground(){
-      ctx.fillStyle=COLOR.bg; ctx.fillRect(0,0,W,H);
-      ctx.strokeStyle=COLOR.fg; ctx.lineWidth=2;
-      ctx.strokeRect(WALL.pad+1,WALL.pad+1, W-2*WALL.pad-2, H-2*WALL.pad-2);
-    }
-    function rrect(x,y,w,h){ ctx.fillRect(x,y,w,h); }
-    function drawPaddle(){ ctx.fillStyle=COLOR.fg; rrect(paddle.x,paddle.y,paddle.w,paddle.h); }
-    function drawBalls(){
-      ctx.fillStyle=COLOR.fg;
-      for(const b of balls){
-        for(const t of b.trail){
-          const a=Math.max(0,t.life/0.25); if(a<=0) continue;
-          ctx.globalAlpha=a*0.6; ctx.fillRect(Math.round(t.x)-2, Math.round(t.y)-2, 4, 4);
-        }
-        ctx.globalAlpha=1; ctx.fillRect(Math.round(b.x)-2, Math.round(b.y)-2, 4, 4);
-      }
-    }
-    function drawBricks(){
-      for(const br of bricks){
-        if(!br.alive) continue;
-        ctx.fillStyle=br.color; rrect(br.x,br.y,br.w,br.h);
-        ctx.strokeStyle=COLOR.fg; ctx.lineWidth=1; ctx.strokeRect(br.x+0.5,br.y+0.5,br.w-1,br.h-1);
-      }
-    }
-    function drawPowerUps(){
-      for(const p of powerups){
-        ctx.fillStyle = p.type==='E'? COLOR.green : p.type==='S'? COLOR.yellow : '#88b0ff';
-        ctx.fillRect(p.x-6,p.y-6,12,12);
-        ctx.fillStyle = COLOR.bg; ctx.font='10px ui-monospace, monospace';
-        ctx.fillText(p.type, p.x-3, p.y+3);
-      }
-    }
-    function drawParticles(){
-      ctx.fillStyle=COLOR.fg;
-      for(const pt of particles){ ctx.globalAlpha=Math.max(0,pt.life/0.35); ctx.fillRect(pt.x,pt.y,2,2); }
-      ctx.globalAlpha=1;
-    }
-    function render(){
-      ctx.clearRect(0,0,W,H);
-      drawBackground(); drawBricks(); drawPaddle(); drawBalls(); drawPowerUps(); drawParticles();
-    }
+  makeLevel(level); resetBallAndPaddle();
+}
+function ensureSync(){ requestAnimationFrame(()=>setTimeout(syncCanvasSize,0)); }
+window.addEventListener('load',ensureSync); window.addEventListener('resize',ensureSync); window.addEventListener('orientationchange',ensureSync);
+if(window.visualViewport){ visualViewport.addEventListener('resize',ensureSync); visualViewport.addEventListener('scroll',ensureSync); }
+new ResizeObserver(ensureSync).observe($('mobilePad'));
+new ResizeObserver(ensureSync).observe($('scorePanel'));
 
-    // ===== Loop & FPS =====
-    let fpsCount=0, fpsTime=performance.now();
-    function fpsTick(){ fpsCount++; const now=performance.now(); if(now-fpsTime>=500){ const fps=Math.round(1000*fpsCount/(now-fpsTime)); fpsEl.textContent=String(fps); fpsTime=now; fpsCount=0; } }
-    function loop(t){ if(!playing){ last=t; requestAnimationFrame(loop); return; } let dt=(t-last)/1000; last=t; dt=Math.min(dt,0.05); acc+=dt; while(acc>=STEP){ step(STEP); acc-=STEP; } render(); fpsTick(); requestAnimationFrame(loop); }
+/* ========= Global prevent selection/drag on UI ========= */
+['selectstart','dragstart','contextmenu'].forEach(ev=>{
+  document.addEventListener(ev, e=>{
+    if((e.target instanceof HTMLElement) && (e.target.closest('#mobilePad')||e.target.id==='screen')) e.preventDefault();
+  }, {passive:false});
+});
+if(canvas) canvas.setAttribute('draggable','false');
 
-    // ===== 幅同期（見た目の枠幅をスコアパネルに一致）＆ 75vh制限内で高さ調整 =====
-    function syncCanvasSize(){
-      const dpr = Math.max(1, Math.min(3, window.devicePixelRatio||1));
-      const panelW = Math.floor(panel.getBoundingClientRect().width);
-      const maxH = Math.floor(window.innerHeight * 0.75) - 8; // 75vh基準
-      const targetH = Math.min(Math.round(panelW * 1.5), maxH); // 縦長
-      canvas.style.width  = panelW + 'px';
-      canvas.style.height = targetH + 'px';
-      canvas.width  = Math.round(panelW * dpr);
-      canvas.height = Math.round(targetH * dpr);
-      ctx.setTransform(dpr,0,0,dpr,0,0);
-      W=Math.round(canvas.width/dpr); H=Math.round(canvas.height/dpr);
+/* ========= Tests (sanity) ========= */
+(function tests(){
+  const assert=(n,c)=> c? console.log('TEST PASS:',n):console.error('TEST FAIL:',n);
+  const isResolved=s=>typeof s==='string'&&s.length>0&&!s.includes('var(');
+  assert('COLOR.brick resolved', isResolved(COLOR.brick));
+  makeLevel(1); assert('bricks created', bricks.length===BR.cols*BR.rows);
+  const blue=bricks.find(b=>b.color===COLOR.brick3); assert('blue hp == 1', blue && blue.hp===1);
+  const m0=multiplier; const m1=Math.min(MULT_MAX, +(m0+MULT_INC).toFixed(2)); assert('mult inc', m1>m0);
+})();
 
-      // paddle位置を底部へ
-      paddle.w = clamp(paddle.w||PADDLE.w, PADDLE.minW, PADDLE.maxW);
-      paddle.h = PADDLE.h;
-      paddle.x = clamp(paddle.x||(W/2 - paddle.w/2), WALL.pad, W-WALL.pad-paddle.w);
-      paddle.y = Math.round(H-56);
+/* ========= Bind & Init ========= */
+startBtn?.addEventListener('click',()=>{ playing=!playing; startBtn.textContent=playing?'⏸':'▶︎'; });
+resetBtn?.addEventListener('click',()=>{ score=0; level=1; lives=3; multiplier=1.0; scoreEl.textContent='0'; levelEl.textContent='1'; livesEl.textContent='3'; multEl.textContent='1.00'; powerups.length=0; particles.length=0; paddle.w=PADDLE.w; makeLevel(level); resetBallAndPaddle(); updateBadges(); });
 
-      // リサイズでレベル崩れを防ぐため再配置
-      makeLevel(level); resetBallAndPaddle();
-    }
-    let _lastPW=0;
-    function ensureSync(){ const w=Math.floor(panel.getBoundingClientRect().width); if(w!==_lastPW){ _lastPW=w; syncCanvasSize(); } }
-
-    // ===== グローバルな選択/ドラッグ抑止（PC誤動作対策） =====
-    ['selectstart','dragstart','contextmenu'].forEach(ev=>{
-      document.addEventListener(ev, e=>{
-        if ((e.target instanceof HTMLElement) && (e.target.closest('#mobilePad') || e.target.id==='screen')){
-          e.preventDefault();
-        }
-      }, {passive:false});
-    });
-    if (canvas) canvas.setAttribute('draggable','false');
-
-    // ===== テスト（簡易） =====
-    (function tests(){
-      const assert=(n,c)=> c? console.log('TEST PASS:',n):console.error('TEST FAIL:',n);
-      const isResolved=s=>typeof s==='string'&&s.length>0&&!s.includes('var(');
-      assert('COLOR.brick resolved', isResolved(COLOR.brick));
-      makeLevel(1); assert('bricks created', bricks.length===BR.cols*BR.rows);
-      const blue = bricks.find(b=>b.color===COLOR.brick3); assert('blue hp == 1', blue && blue.hp===1);
-      const m0=multiplier; const m1=Math.min(MULT_MAX, +(m0+MULT_INC).toFixed(2)); assert('mult inc formula', m1>m0);
-    })();
-
-    // ===== Bind & Init =====
-    startBtn?.addEventListener('click', ()=>{ playing=!playing; startBtn.textContent=playing?'⏸':'▶︎'; });
-    resetBtn?.addEventListener('click', ()=>{
-      score=0; level=1; lives=3; multiplier=1.0;
-      scoreEl.textContent='0'; levelEl.textContent='1'; livesEl.textContent='3'; multEl.textContent='1.00';
-      powerups.length=0; particles.length=0; paddle.w=PADDLE.w;
-      makeLevel(level); resetBallAndPaddle(); updateBadges();
-    });
-
-    // 初期化
-    scoreEl.textContent=String(score);
-    livesEl.textContent=String(lives);
-    levelEl.textContent=String(level);
-    updateBadges();
-    ensureSync();
-    window.addEventListener('load', ensureSync);
-    window.addEventListener('resize', ensureSync);
-    requestAnimationFrame(loop);
-  </script>
+scoreEl.textContent=String(score); livesEl.textContent=String(lives); levelEl.textContent=String(level); updateBadges();
+requestAnimationFrame(loop);
+</script>
 </body>
 </html>
