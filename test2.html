@@ -96,37 +96,73 @@ kbd { background:var(--bg); border:1px solid var(--fg); padding:1px 3px; font-fa
   outline: calc(var(--lcd-outline)*2px) solid rgba(255,0,200,.65); /* ←微調整時のみ見える */
 }
 
-/* === DPAD & ボタン === */
-.mobile-pad {
-  display:flex !important;
-  position:fixed; left:0; right:0;
-  bottom:max(8px, env(safe-area-inset-bottom));
-  z-index:50;
-  justify-content:space-between; align-items:center;
-  gap:16px; padding:10px 12px;
+/* === DPAD & ボタン（透明背景・絶対配置・最前面） === */
+.mobile-pad{
+  position: fixed;
+  inset: 0;               /* 画面全体を覆うレイヤ（透過） */
+  background: transparent;/* 透明 */
+  border: none;
+  z-index: 50;            /* フレームより前面 */
+  pointer-events: none;   /* レイヤ自体はクリックを受けない（下の要素に透過） */
+}
 
-  /* ここを透明に変更 */
-  background: transparent;  /* ←変更 */
-  border: none;             /* ←枠線も不要なら削除 */
+/* 位置決め用スロット（ここに実ボタンを入れる） */
+.mobile-pad .pad-slot{
+  position: absolute;
+  pointer-events: none; /* スロットは透過 */
+  outline: calc(var(--pad-debug) * 1px) dashed rgba(255,255,255,.4); /* デバッグ枠 */
 }
-.mobile-pad .dpad {
+
+/* 左側DPADの基準位置 + 微調整 + スケール/回転 */
+.dpad-slot{
+  left: var(--dpad-left);
+  bottom: var(--dpad-bottom);
+  transform:
+    translate(var(--dpad-offset-x), calc(var(--dpad-offset-y) * -1))
+    scale(var(--pad-scale))
+    rotate(var(--pad-rotate));
+  transform-origin: center;
+}
+
+/* 右側ABボタンの基準位置 + 微調整 + スケール/回転 */
+.ab-slot{
+  right: var(--ab-right);
+  bottom: var(--ab-bottom);
+  transform:
+    translate(var(--ab-offset-x), calc(var(--ab-offset-y) * -1))
+    scale(var(--pad-scale))
+    rotate(var(--pad-rotate));
+  transform-origin: center;
+}
+
+/* 実ボタン群。ここで pointer-events を復活させて操作可能に */
+.mobile-pad .dpad,
+.mobile-pad .buttons{
+  pointer-events: auto;
+}
+
+/* 既存のボタン見た目はそのまま（必要に応じて） */
+.mobile-pad .dpad{
   display:grid;
-  grid-template-columns: repeat(3, calc(var(--btn-base)*var(--pad-scale)));
-  grid-template-rows:    repeat(3, calc(var(--btn-base)*var(--pad-scale)));
-  gap: calc(var(--gap-base)*var(--pad-scale));
+  grid-template-columns: repeat(3, calc(var(--btn-base)*1));
+  grid-template-rows:    repeat(3, calc(var(--btn-base)*1));
+  gap: var(--gap-base);
 }
-.mobile-pad .spacer { visibility:hidden; }
-.mobile-pad .buttons { display:flex; align-items:center; gap:18px; }
-.mobile-pad button {
-  width:calc(var(--btn-base)*var(--pad-scale)); height:calc(var(--btn-base)*var(--pad-scale));
-  border-radius:8px; font-size:calc(16px*var(--pad-scale));
-  touch-action:none; background:var(--bg2); border:2px solid var(--ctrl-border); color:var(--fg);
-  font-family:inherit; box-shadow:0 2px 0 var(--ctrl-shadow); transition: transform .02s ease;
+.mobile-pad .spacer{ visibility:hidden; }
+.mobile-pad .buttons{ display:flex; gap:18px; }
+.mobile-pad button{
+  width: var(--btn-base); height: var(--btn-base);
+  border-radius:8px; font-size:16px;
+  background:var(--bg2); border:2px solid var(--ctrl-border); color:var(--fg);
+  box-shadow:0 2px 0 var(--ctrl-shadow);
+  touch-action:none;
 }
-.mobile-pad button:active, .mobile-pad button.pressed { transform: translateY(1px); box-shadow: 0 1px 0 var(--ctrl-shadow); }
-#dpadUp, #dpadDown, #dpadLeft, #dpadRight { background: var(--ctrl-dpad); color: var(--ctrl-dpad-fg); }
-#btnA, #btnB { border-radius: 999px; color: var(--ctrl-ab-fg); }
-#btnA { background: var(--ctrl-a); }  #btnB { background: var(--ctrl-b); }
+.mobile-pad button:active, .mobile-pad button.pressed{
+  transform: translateY(1px); box-shadow:0 1px 0 var(--ctrl-shadow);
+}
+#dpadUp,#dpadDown,#dpadLeft,#dpadRight{ background:var(--ctrl-dpad); color:var(--ctrl-dpad-fg); }
+#btnA,#btnB{ border-radius:999px; color:var(--ctrl-ab-fg); }
+#btnA{ background:var(--ctrl-a); } #btnB{ background:var(--ctrl-b); }
 
 /* ===== Overlay（ゲームオーバー/ランキング）・安定板のまま ===== */
 .overlay {
@@ -179,17 +215,22 @@ kbd { background:var(--bg); border:1px solid var(--fg); padding:1px 3px; font-fa
 
   <!-- === DPAD & AB（常に表示・最前面） === -->
   <div class="mobile-pad" id="mobilePad" aria-label="virtual controls">
+    <!-- 左：DPAD -->
+   <div class="pad-slot dpad-slot">
     <div class="dpad" aria-label="dpad left">
       <span class="spacer"></span><button id="dpadUp">▲</button><span class="spacer"></span>
       <button id="dpadLeft">◀</button><span class="spacer"></span><button id="dpadRight">▶</button>
       <span class="spacer"></span><button id="dpadDown">▼</button><span class="spacer"></span>
     </div>
+  </div>
+     <!-- 右：A/B -->
+  <div class="pad-slot ab-slot">
     <div class="buttons" aria-label="action buttons right">
       <button id="btnA">A</button>
       <button id="btnB">B</button>
     </div>
   </div>
-
+</div>
   <!-- === Overlay: GameOver + Leaderboard（安定板のまま） === -->
   <div class="overlay" id="overlay">
     <div class="card">
