@@ -73,16 +73,18 @@ kbd { background:var(--bg); border:1px solid var(--fg); padding:1px 3px; font-fa
   outline: calc(var(--lcd-outline)*2px) solid rgba(255,0,200,.65); /* ←微調整時のみ見える */
 }
 
-/* ===== DPAD & ボタン（常に表示 / 最前面 / 下部固定） ===== */
+/* === DPAD & ボタン === */
 .mobile-pad {
-  display:flex !important;                /* 768px以上でも必ず表示 */
+  display:flex !important;
   position:fixed; left:0; right:0;
   bottom:max(8px, env(safe-area-inset-bottom));
-  z-index:50;                             /* フレームより手前に出す */
+  z-index:50;
   justify-content:space-between; align-items:center;
   gap:16px; padding:10px 12px;
-  background:var(--ctrl-surface); border:2px solid var(--ctrl-border); border-radius:8px;
-  transform-origin: bottom center;
+
+  /* ここを透明に変更 */
+  background: transparent;  /* ←変更 */
+  border: none;             /* ←枠線も不要なら削除 */
 }
 .mobile-pad .dpad {
   display:grid;
