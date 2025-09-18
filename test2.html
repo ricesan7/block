@@ -6,12 +6,7 @@
 <title>Brick Breaker+ (GB Pad + Leaderboard)</title>
 <style>
   :root {
-  --gb-frame-image: url('assets/gb-frame.png');
-  --lcd-top: 12.20%;
-  --lcd-left: 14.80%;
-  --lcd-w: 70.40%;
-  --lcd-h: 40.60%;
-  --lcd-outline: 1;
+
   --bg:#1a1a1a; --bg2:#0d0d0d; --fg:#e0e0c0; --accent:#f0d060; --muted:#a0a080;
   --brick:#d04040; --brick2:#40a040; --brick3:#4060d0;
   --green:#50c878; --yellow:#f0e68c; --glass:#222222aa;
@@ -91,6 +86,48 @@
   }
   .row button { font-size:12px; padding:8px 10px; }
   .note { color:var(--muted); font-size:11px; }
+
+/* === GBフレーム本体 === */
+:root{
+  /* 画像パスは実ファイルに合わせる（例: assets/gb-frame.png） */
+  --gb-frame-image: url('assets/gb-frame.png');
+
+  /* 液晶の位置とサイズ（あとで 0.1〜0.2% ずつ微調整） */
+  --lcd-top: 12.20%;
+  --lcd-left: 14.80%;
+  --lcd-w: 70.40%;
+  --lcd-h: 40.60%;
+  --lcd-outline: 1; /* 調整用のピンク枠（0でOFF） */
+}
+
+/* まず枠そのものを出す（背景画像がここに描かれる） */
+.gb-frame{
+  position: relative;
+  width: 100vw;
+  height: 100svh;
+  background: var(--gb-frame-image) no-repeat center / contain;
+  /* ↓デバッグ用。フレームBoxが存在するか確認（後で消してOK） */
+  outline: 2px dashed rgba(0,255,255,.35);
+  background-color: #111; /* 画像が出ない時の仮色 */
+}
+
+/* 液晶の位置にキャンバスをはめ込む */
+.gb-frame #screen{
+  position: absolute;
+  top:   var(--lcd-top);
+  left:  var(--lcd-left);
+  width: var(--lcd-w);
+  height:var(--lcd-h);
+  background: #000;
+  border: none;
+  image-rendering: pixelated;
+  outline: calc(var(--lcd-outline) * 2px) solid rgba(255,0,200,.65);
+}
+
+/* 念のため、全画面で見えるようにしておく */
+html, body { height: 100svh; margin:0; overflow:hidden; }
+
+  
 </style>
 </head>
 <body data-theme="gb">
@@ -157,7 +194,7 @@
       </p>
     </div>
   </div>
-
+  
 <script>
 /* ========= DOM ========= */
 const $ = id => document.getElementById(id);
