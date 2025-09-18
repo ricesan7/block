@@ -133,8 +133,10 @@
       <div id="powerBadges" class="badge">NO POWER</div>
     </div>
 
-    <canvas id="screen" aria-label="game screen" role="img"></canvas>
-
+    <!-- GBフレーム背景の中に液晶キャンバスをはめ込み -->
+<div class="gb-frame">
+  <canvas id="screen" aria-label="game screen" role="img"></canvas>
+</div>
     <!-- Controller -->
     <div class="mobile-pad" id="mobilePad" aria-label="virtual controls">
       <div class="dpad" aria-label="dpad left">
