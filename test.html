@@ -85,6 +85,43 @@
   }
   .row button { font-size:12px; padding:8px 10px; }
   .note { color:var(--muted); font-size:11px; }
+
+<head>
+  <style>
+    /* 既存のCSS */
+    body { margin:0; }
+
+    /* === GBフレーム背景 & 液晶はめ込み（レスポンシブ対応） === */
+    :root{
+      --gb-frame-image: url('assets/gb-frame.png');
+      --lcd-top: 11%;
+      --lcd-left: 9.5%;
+      --lcd-w: 81%;
+      --lcd-h: 40%;
+    }
+
+    .gb-frame{
+      position: relative;
+      width: 100vw;
+      height: 100svh;
+      background: var(--gb-frame-image) no-repeat center;
+      background-size: contain;
+      overflow: hidden;
+    }
+
+    .gb-frame #screen{
+      position: absolute;
+      top:   var(--lcd-top);
+      left:  var(--lcd-left);
+      width: var(--lcd-w);
+      height:var(--lcd-h);
+      background: #111;
+      border: none;
+      image-rendering: pixelated;
+    }
+  </style>
+</head>
+  
 </style>
 </head>
 <body data-theme="gb">
