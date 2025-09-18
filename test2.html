@@ -24,6 +24,28 @@
   --lcd-w: 67.90%;     /* 横幅    : +で右側へ広がる / -で狭める */
   --lcd-h: 52.00%;     /* 高さ    : +で下へ広がる  / -で縮む   */
   --lcd-outline: 0;    /* 1=調整用ピンク枠ON / 0=OFF */
+  /* === DPAD 微調整用 ＝＝＝＝＝＝＝＝＝＝＝＝＝＝ */
+  /* 左側DPADの基準位置（画面の左下基準） */
+  --dpad-left: 2vw;                  /* 例: 画面左からの距離 */
+  --dpad-bottom: calc(12vh + env(safe-area-inset-bottom)); /* 例: 画面下からの距離 */
+
+  /* 右側ABボタンの基準位置（画面の右下基準） */
+  --ab-right: 2vw;                   /* 例: 画面右からの距離 */
+  --ab-bottom: calc(12vh + env(safe-area-inset-bottom));   /* 例: 画面下からの距離 */
+
+  /* 細かい微調整（相対オフセット）。単位は px 推奨。+で右/上に動く */
+  --dpad-offset-x: 0px;
+  --dpad-offset-y: 0px;
+  --ab-offset-x: 0px;
+  --ab-offset-y: 0px;
+
+  /* 大きさ・回転（両方のコントローラに一括適用） */
+  --pad-scale: 1;        /* 0.7〜1.2 くらいで調整 */
+  --pad-rotate: 0deg;    /* 少し斜めにしたい時は 5deg など */
+
+  /* デバッグ枠：1 でON（輪郭が見える） */
+  --pad-debug: 0;
+  
 }
 
 html, body {
