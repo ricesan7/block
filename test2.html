@@ -5,33 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Brick Breaker+ (GB Pad + Leaderboard)</title>
 <style>
-  :root{
-  --gb-frame-image: url('assets/gb-frame.png'); /* 画像パスはアップロードしたファイルに合わせて */
-  --lcd-top: 12.2%;
-  --lcd-left: 14.8%;
-  --lcd-w: 70.4%;
-  --lcd-h: 40.6%;
-  --lcd-outline: 1; /* ピンク枠確認用。調整完了後は 0 に */
-}
-
-.gb-frame{
-  position: relative;
-  width: 100vw; height: 100svh;
-  background: var(--gb-frame-image) no-repeat center / contain;
-  overflow: hidden;
-}
-.gb-frame #screen{
-  position: absolute;
-  top:   var(--lcd-top);
-  left:  var(--lcd-left);
-  width: var(--lcd-w);
-  height:var(--lcd-h);
-  background: #111;
-  border:none;
-  image-rendering: pixelated;
-  outline: calc(var(--lcd-outline)*2px) solid rgba(255,0,200,.65);
-}
-  
   :root {
     --bg:#1a1a1a; --bg2:#0d0d0d; --fg:#e0e0c0; --accent:#f0d060; --muted:#a0a080;
     --brick:#d04040; --brick2:#40a040; --brick3:#4060d0;
