@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>Brick Breaker+ (GB Pad + Leaderboard)</title>
+<title>Brick Breaker+ (GB Frame + DPAD, merged)</title>
 <style>
 :root {
-  /* 既存の配色・コントローラ変数（必要） */
+  /* === 既存の配色・コントローラ変数（元の安定板から継承） === */
   --bg:#1a1a1a; --bg2:#0d0d0d; --fg:#e0e0c0; --accent:#f0d060; --muted:#a0a080;
   --brick:#d04040; --brick2:#40a040; --brick3:#4060d0;
   --green:#50c878; --yellow:#f0e68c; --glass:#222222aa;
@@ -14,24 +14,28 @@
   --ctrl-a:#7b2f6a; --ctrl-b:#5e2552; --ctrl-ab-fg:#e6ffd2; --ctrl-shadow:rgba(0,0,0,.45);
   --btn-base:56px; --gap-base:8px; --pad-scale:1;
 
-  /* === GBフレーム用（ここを微調整） === */
+  /* === 新規：フレーム画像＆液晶（はめ込み）位置 ＝＝＝＝＝＝＝＝＝＝＝＝＝＝
+     ここを 0.1〜0.2% ずつ調整して“黒い枠の内側”にピッタリ合わせます。
+     決まったら --lcd-outline を 0 にして枠線を消してください。
+  ==================================================================== */
   --gb-frame-image: url('assets/gb-frame.png');
-  --lcd-top: 0.00%;
-  --lcd-left: 0.00%;
-  --lcd-w: 60.40%;
-  --lcd-h: 40.60%;
-  --lcd-outline: 1; /* 調整用のピンク枠（0でOFF） */
+  --lcd-top: 12.20%;   /* ↑/↓ : top を ±0.1〜0.2% */
+  --lcd-left: 14.80%;  /* ←/→ : left を ±0.1〜0.2% */
+  --lcd-w: 70.40%;     /* 横幅    : +で右側へ広がる / -で狭める */
+  --lcd-h: 40.60%;     /* 高さ    : +で下へ広がる  / -で縮む   */
+  --lcd-outline: 1;    /* 1=調整用ピンク枠ON / 0=OFF */
 }
 
-html, body { height: 100svh; overflow: hidden; }
-body {
-  margin:0; font-family: ui-monospace, Menlo, Consolas, monospace;
+html, body {
+  height: 100svh; margin:0; overflow:hidden;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
   background: var(--bg2); color: var(--fg);
-  display:grid; min-height:100svh; place-items:start center;
-  -webkit-user-select:none; user-select:none; overscroll-behavior:none;
+  -webkit-user-select:none; user-select:none;
+  overscroll-behavior:none;
   -webkit-touch-callout:none; -webkit-tap-highlight-color: transparent;
 }
 
+/* ===== 上部UI（スコア/HUDなど） ===== */
 .wrap { width:min(980px, 96vw); padding:8px 8px calc(env(safe-area-inset-bottom, 0) + 8px); }
 header { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px; }
 h1 { font-size:14px; margin:0; color:var(--accent); letter-spacing:1px; }
@@ -41,23 +45,22 @@ button:hover { background: var(--fg); color: var(--bg); }
 .panel { display:flex; align-items:center; gap:8px; color:var(--muted); flex-wrap:wrap; padding:4px 6px; border-radius:4px; background: var(--glass); border:2px solid var(--fg); font-size:10px; }
 .badge { padding:1px 4px; border-radius:2px; border:1px solid var(--fg); background:var(--bg2); font-size:9px; color:var(--accent); }
 .score { font-weight:700; color:var(--accent); }
+footer { margin-top:6px; font-size:9px; color:var(--muted); display:flex; justify-content:space-between; gap:6px; flex-wrap:wrap; }
+kbd { background:var(--bg); border:1px solid var(--fg); padding:1px 3px; font-family:inherit; font-size:9px; }
 
-/* 旧 #screen の単独スタイルは削除（競合防止）
-#screen { ... } は使わない！
-*/
+/* ===== 旧 #screen の単独スタイルは削除（フレーム内に移管） ===== */
+/* #screen { ... } は使いません */
 
-/* === GBフレーム === */
+/* ===== 新規：GBフレーム（土台）＋液晶（キャンバス） ===== */
 .gb-frame{
   position: relative;
   width: 100vw;
   height: 100svh;
   background: var(--gb-frame-image) no-repeat center / contain;
-  outline: 2px dashed rgba(0,255,255,.35); /* デバッグ用：後で消してOK */
-  background-color: #111; /* 画像未読み込み時の仮色 */
+  background-color: #111;  /* 画像未読込時の仮色 */
   overflow: hidden;
 }
-
-/* 液晶はめ込み（キャンバス） */
+/* 液晶はめ込み（CSSで位置/サイズを決める） */
 .gb-frame #screen{
   position: absolute;
   top:   var(--lcd-top);
@@ -67,96 +70,67 @@ button:hover { background: var(--fg); color: var(--bg); }
   background: #000;
   border: none;
   image-rendering: pixelated;
-  outline: calc(var(--lcd-outline) * 2px) solid rgba(255,0,200,.65);
+  outline: calc(var(--lcd-outline)*2px) solid rgba(255,0,200,.65); /* ←微調整時のみ見える */
 }
 
-/* Controller */
-.mobile-pad { display:none; justify-content:space-between; align-items:center; gap:16px; margin-top:8px; padding:10px 6px;
+/* ===== DPAD & ボタン（常に表示 / 最前面 / 下部固定） ===== */
+.mobile-pad {
+  display:flex !important;                /* 768px以上でも必ず表示 */
+  position:fixed; left:0; right:0;
+  bottom:max(8px, env(safe-area-inset-bottom));
+  z-index:50;                             /* フレームより手前に出す */
+  justify-content:space-between; align-items:center;
+  gap:16px; padding:10px 12px;
   background:var(--ctrl-surface); border:2px solid var(--ctrl-border); border-radius:8px;
-  transform: scale(var(--pad-scale)); transform-origin: bottom center;
-  position: relative; z-index: 10; /* ←フレームの上に出す保険 */
+  transform-origin: bottom center;
 }
 .mobile-pad .dpad {
   display:grid;
-  grid-template-columns: calc(var(--btn-base)*var(--pad-scale)) calc(var(--btn-base)*var(--pad-scale)) calc(var(--btn-base)*var(--pad-scale));
-  grid-template-rows:    calc(var(--btn-base)*var(--pad-scale)) calc(var(--btn-base)*var(--pad-scale)) calc(var(--btn-base)*var(--pad-scale));
+  grid-template-columns: repeat(3, calc(var(--btn-base)*var(--pad-scale)));
+  grid-template-rows:    repeat(3, calc(var(--btn-base)*var(--pad-scale)));
   gap: calc(var(--gap-base)*var(--pad-scale));
 }
-.mobile-pad .dpad .spacer { visibility:hidden; }
+.mobile-pad .spacer { visibility:hidden; }
 .mobile-pad .buttons { display:flex; align-items:center; gap:18px; }
 .mobile-pad button {
   width:calc(var(--btn-base)*var(--pad-scale)); height:calc(var(--btn-base)*var(--pad-scale));
   border-radius:8px; font-size:calc(16px*var(--pad-scale));
   touch-action:none; background:var(--bg2); border:2px solid var(--ctrl-border); color:var(--fg);
-  font-family:inherit; box-shadow: 0 2px 0 var(--ctrl-shadow); transition: transform .02s ease;
+  font-family:inherit; box-shadow:0 2px 0 var(--ctrl-shadow); transition: transform .02s ease;
 }
 .mobile-pad button:active, .mobile-pad button.pressed { transform: translateY(1px); box-shadow: 0 1px 0 var(--ctrl-shadow); }
 #dpadUp, #dpadDown, #dpadLeft, #dpadRight { background: var(--ctrl-dpad); color: var(--ctrl-dpad-fg); }
 #btnA, #btnB { border-radius: 999px; color: var(--ctrl-ab-fg); }
 #btnA { background: var(--ctrl-a); }  #btnB { background: var(--ctrl-b); }
-@media (max-width: 768px){ .mobile-pad { display:flex; } }
 
-footer { margin-top:6px; font-size:9px; color:var(--muted); display:flex; justify-content:space-between; gap:6px; flex-wrap:wrap; }
-kbd { background:var(--bg); border:1px solid var(--fg); padding:1px 3px; font-family:inherit; font-size:9px; }
-
-
-  /* GB Controller */
-  .mobile-pad { display:none; justify-content:space-between; align-items:center; gap:16px; margin-top:8px; padding:10px 6px;
-    background:var(--ctrl-surface); border:2px solid var(--ctrl-border); border-radius:8px;
-    transform: scale(var(--pad-scale)); transform-origin: bottom center;
-  }
-  .mobile-pad .dpad {
-    display:grid;
-    grid-template-columns: calc(var(--btn-base)*var(--pad-scale)) calc(var(--btn-base)*var(--pad-scale)) calc(var(--btn-base)*var(--pad-scale));
-    grid-template-rows:    calc(var(--btn-base)*var(--pad-scale)) calc(var(--btn-base)*var(--pad-scale)) calc(var(--btn-base)*var(--pad-scale));
-    gap: calc(var(--gap-base)*var(--pad-scale));
-  }
-  .mobile-pad .dpad .spacer { visibility:hidden; }
-  .mobile-pad .buttons { display:flex; align-items:center; gap:18px; }
-  .mobile-pad button {
-    width:calc(var(--btn-base)*var(--pad-scale)); height:calc(var(--btn-base)*var(--pad-scale));
-    border-radius:8px; font-size:calc(16px*var(--pad-scale));
-    touch-action:none; background:var(--bg2); border:2px solid var(--ctrl-border); color:var(--fg);
-    font-family:inherit; box-shadow: 0 2px 0 var(--ctrl-shadow); transition: transform .02s ease;
-  }
-  .mobile-pad button:active, .mobile-pad button.pressed { transform: translateY(1px); box-shadow: 0 1px 0 var(--ctrl-shadow); }
-  #dpadUp, #dpadDown, #dpadLeft, #dpadRight { background: var(--ctrl-dpad); color: var(--ctrl-dpad-fg); }
-  #btnA, #btnB { border-radius: 999px; color: var(--ctrl-ab-fg); }
-  #btnA { background: var(--ctrl-a); }  #btnB { background: var(--ctrl-b); }
-  @media (max-width: 768px){ .mobile-pad { display:flex; } }
-
-  .wrap, #screen, .mobile-pad, .mobile-pad * { -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; }
-  #screen, .mobile-pad button { -webkit-user-drag:none; user-drag:none; }
-
-  /* === Overlay (Game Over + Leaderboard) === */
-  .overlay {
-    position: fixed; inset: 0;
-    display:none; align-items:center; justify-content:center;
-    background: rgba(0,0,0,.6); z-index: 9999;
-  }
-  .overlay.show { display:flex; }
-  .card {
-    width:min(540px, 94vw); max-height:90vh; overflow:auto;
-    background: #101010; color:var(--fg); border:2px solid var(--fg); border-radius:8px; padding:16px;
-    box-shadow: 0 10px 40px rgba(0,0,0,.6);
-  }
-  .card h2 { margin:0 0 10px; color:var(--accent); font-size:20px; }
-  .big { font-size:36px; font-weight:700; color:var(--accent); margin-bottom:8px; }
-  .ranklist { margin:8px 0 12px; padding:0; list-style:none; border-top:1px solid var(--fg); border-bottom:1px solid var(--fg); }
-  .ranklist li { display:flex; justify-content:space-between; padding:6px 2px; border-bottom:1px dashed #333; }
-  .ranklist li:last-child { border-bottom:none; }
-  .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-  .row input {
-    border:2px solid var(--fg); background:#0b0b0b; color:var(--fg); border-radius:4px; padding:6px 8px; font-family:inherit; font-size:14px;
-  }
-  .row button { font-size:12px; padding:8px 10px; }
-  .note { color:var(--muted); font-size:11px; }
+/* ===== Overlay（ゲームオーバー/ランキング）・安定板のまま ===== */
+.overlay {
+  position: fixed; inset: 0;
+  display:none; align-items:center; justify-content:center;
+  background: rgba(0,0,0,.6); z-index: 9999;
+}
+.overlay.show { display:flex; }
+.card {
+  width:min(540px, 94vw); max-height:90vh; overflow:auto;
+  background: #101010; color:var(--fg); border:2px solid var(--fg); border-radius:8px; padding:16px;
+  box-shadow: 0 10px 40px rgba(0,0,0,.6);
+}
+.card h2 { margin:0 0 10px; color:var(--accent); font-size:20px; }
+.big { font-size:36px; font-weight:700; color:var(--accent); margin-bottom:8px; }
+.ranklist { margin:8px 0 12px; padding:0; list-style:none; border-top:1px solid var(--fg); border-bottom:1px solid var(--fg); }
+.ranklist li { display:flex; justify-content:space-between; padding:6px 2px; border-bottom:1px dashed #333; }
+.ranklist li:last-child { border-bottom:none; }
+.row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+.row input { border:2px solid var(--fg); background:#0b0b0b; color:var(--fg); border-radius:4px; padding:6px 8px; font-family:inherit; font-size:14px; }
+.row button { font-size:12px; padding:8px 10px; }
+.note { color:var(--muted); font-size:11px; }
 </style>
 </head>
-<body data-theme="gb">
+
+<body>
   <div class="wrap">
     <header>
-      <h1>Brick Breaker+ GB Pad</h1>
+      <h1>Brick Breaker+ GB Frame</h1>
       <div class="controls">
         <button id="btnStart">▶︎/⏸</button>
         <button id="btnReset">⟲</button>
@@ -171,48 +145,42 @@ kbd { background:var(--bg); border:1px solid var(--fg); padding:1px 3px; font-fa
       <div>FPS:<span id="fps">0</span></div>
       <div id="powerBadges" class="badge">NO POWER</div>
     </div>
-<div class="gb-frame">
-    <canvas id="screen" aria-label="game screen" role="img"></canvas>
-</div>
-    <!-- Controller -->
-    <div class="mobile-pad" id="mobilePad" aria-label="virtual controls">
-      <div class="dpad" aria-label="dpad left">
-        <span class="spacer"></span><button id="dpadUp">▲</button><span class="spacer"></span>
-        <button id="dpadLeft">◀</button><span class="spacer"></span><button id="dpadRight">▶</button>
-        <span class="spacer"></span><button id="dpadDown">▼</button><span class="spacer"></span>
-      </div>
-      <div class="buttons" aria-label="action buttons right">
-        <button id="btnA">A</button>
-        <button id="btnB">B</button>
-      </div>
-    </div>
-
-    <footer>
-      <div><kbd>←</kbd><kbd>→</kbd> MOVE / <kbd>SPACE</kbd>● LAUNCH / <kbd>P</kbd> PAUSE</div>
-    </footer>
   </div>
 
-  <!-- === Overlay: GameOver + Leaderboard === -->
+  <!-- === 新規：フレーム背景の中にキャンバス（液晶）をはめ込む === -->
+  <div class="gb-frame">
+    <canvas id="screen" aria-label="game screen" role="img"></canvas>
+  </div>
+
+  <!-- === DPAD & AB（常に表示・最前面） === -->
+  <div class="mobile-pad" id="mobilePad" aria-label="virtual controls">
+    <div class="dpad" aria-label="dpad left">
+      <span class="spacer"></span><button id="dpadUp">▲</button><span class="spacer"></span>
+      <button id="dpadLeft">◀</button><span class="spacer"></span><button id="dpadRight">▶</button>
+      <span class="spacer"></span><button id="dpadDown">▼</button><span class="spacer"></span>
+    </div>
+    <div class="buttons" aria-label="action buttons right">
+      <button id="btnA">A</button>
+      <button id="btnB">B</button>
+    </div>
+  </div>
+
+  <!-- === Overlay: GameOver + Leaderboard（安定板のまま） === -->
   <div class="overlay" id="overlay">
     <div class="card">
       <h2>GAME OVER</h2>
       <div class="big">SCORE: <span id="finalScore">0</span></div>
-
       <h3 style="margin:10px 0 6px;">Top 10</h3>
       <ul class="ranklist" id="rankList"></ul>
-
       <div id="entryRow" class="row" style="display:none;">
         <input id="playerName" maxlength="16" placeholder="Your name (max 16)" />
         <button id="btnSubmit">Submit</button>
       </div>
-
       <div class="row" style="margin-top:10px;">
         <button id="btnPlayAgain">Play Again</button>
         <span id="syncStatus" class="note"></span>
       </div>
-      <p class="note" style="margin-top:8px;">
-        ランキングはローカル保存（この端末のみ）＋任意でGoogleスプレッドシート連携に対応。
-      </p>
+      <p class="note" style="margin-top:8px;">ランキングはローカル保存（この端末のみ）＋任意でGoogleスプレッドシート連携に対応。</p>
     </div>
   </div>
 
@@ -246,16 +214,21 @@ let score=0,lives=3,level=1, multiplier=1.0, MULT_INC=0.10, MULT_MAX=5.00;
 
 /* ========= Input ========= */
 const keys=new Set();
-window.addEventListener('keydown',e=>{ if(["ArrowLeft","ArrowRight"," ","p","P"].includes(e.key)) e.preventDefault(); keys.add(e.key);});
-window.addEventListener('keyup',e=>keys.delete(e.key));
+addEventListener('keydown',e=>{ if(["ArrowLeft","ArrowRight"," ","p","P"].includes(e.key)) e.preventDefault(); keys.add(e.key);});
+addEventListener('keyup',e=>keys.delete(e.key));
 const mobile={left:false,right:false,launch:false};
-function bindHold(id,on,off){ const b=$(id); if(!b) return; const d=e=>{e.preventDefault();on();}; const u=e=>{e.preventDefault();off();}; b.addEventListener('pointerdown',d,{passive:false}); ["pointerup","pointerleave","pointercancel"].forEach(ev=>b.addEventListener(ev,u,{passive:false})); }
+function bindHold(id,on,off){
+  const b=$(id); if(!b) return;
+  const down=e=>{e.preventDefault();on();b.classList.add('pressed');};
+  const up=e=>{e.preventDefault();off();b.classList.remove('pressed');};
+  b.addEventListener('pointerdown',down,{passive:false});
+  ["pointerup","pointerleave","pointercancel"].forEach(ev=>b.addEventListener(ev,up,{passive:false}));
+}
 bindHold('dpadLeft',()=>mobile.left=true,()=>mobile.left=false);
 bindHold('dpadRight',()=>mobile.right=true,()=>mobile.right=false);
 bindHold('dpadUp',()=>{},()=>{}); bindHold('dpadDown',()=>{},()=>{});
 $('btnA')?.addEventListener('pointerdown',e=>{e.preventDefault(); mobile.launch=true;},{passive:false});
 $('btnB')?.addEventListener('pointerdown',e=>{e.preventDefault(); playing=!playing; startBtn.textContent=playing?'⏸':'▶︎';},{passive:false});
-$('mobilePad')?.querySelectorAll('button').forEach(btn=>{ btn.addEventListener('pointerdown',()=>btn.classList.add('pressed')); ["pointerup","pointerleave","pointercancel"].forEach(ev=>btn.addEventListener(ev,()=>btn.classList.remove('pressed'))); });
 
 /* ========= SFX ========= */
 let actx; function beep(freq=660,dur=0.05,type='square'){ try{ actx=actx||new (window.AudioContext||window.webkitAudioContext)(); const o=actx.createOscillator(), g=actx.createGain(); o.type=type; o.frequency.value=freq; o.connect(g); g.connect(actx.destination); g.gain.setValueAtTime(0.08, actx.currentTime); g.gain.exponentialRampToValueAtTime(0.0001, actx.currentTime+dur); o.start(); o.stop(actx.currentTime+dur);}catch(_){ } }
@@ -293,107 +266,48 @@ function spawnPowerUp(x,y){ if(Math.random()<0.22){ const type=PU_TYPES[Math.flo
 function applyPowerUp(t){ if(t==='E'){ effects.expand=12; paddle.w=clamp(Math.round(paddle.w*1.5),PADDLE.minW,PADDLE.maxW); beep(660,0.08,'square'); } if(t==='S'){ effects.slow=8; for(const b of balls){ b.vx*=0.7; b.vy*=0.7; } beep(330,0.08,'sine'); } if(t==='M'){ const clones=[]; for(const b of balls){ if(!b.stuck){ clones.push({x:b.x,y:b.y,vx:-b.vx,vy:b.vy,r:b.r,stuck:false,trail:[]}); } } balls.push(...clones); beep(520,0.08,'triangle'); } if(t==='L'){ lives++; livesEl.textContent=String(lives); beep(990,0.08,'square'); } updateBadges(); }
 function updateBadges(){ const tags=[]; if(effects.expand>0) tags.push('E'); if(effects.slow>0) tags.push('S'); powerEl.textContent=tags.length?('POWER:'+tags.join(',')):'NO POWER'; multEl.textContent=multiplier.toFixed(2); }
 
-/* ========= Leaderboard (Local + Optional Remote) ========= */
-// ★ Apps Script の Web アプリ公開URL（後述の手順）をここに入れるとグローバル共有に。
-const LEADERBOARD_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxXwZv1MX0b0fwObbr-qMl_Jg2mM81eZehdBWOj7yGqOjki7guFqwA0mDuWKh6FqcEV/exec'; // 例: 'https://script.google.com/macros/s/AKfycbxxx/exec'
+/* ========= Leaderboard（安定板のまま） ========= */
+const LEADERBOARD_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxXwZv1MX0b0fwObbr-qMl_Jg2mM81eZehdBWOj7yGqOjki7guFqwA0mDuWKh6FqcEV/exec';
 const LB_LOCAL_KEY = 'bb_local_scores_v1';
 const LB_LIMIT = 10;
-
-function loadLocalScores(){
-  try{ return JSON.parse(localStorage.getItem(LB_LOCAL_KEY)||'[]'); }catch(_){ return []; }
-}
-function saveLocalScores(arr){
-  localStorage.setItem(LB_LOCAL_KEY, JSON.stringify(arr.slice(0,LB_LIMIT)));
-}
-async function fetchGlobalScores(){
-  if(!LEADERBOARD_ENDPOINT) return null;
-  try{
-    const r = await fetch(LEADERBOARD_ENDPOINT+'?mode=list', {cache:'no-store'});
-    if(!r.ok) throw new Error('fetch fail');
-    const data = await r.json(); // [{name,score,ts}]
-    return Array.isArray(data) ? data.slice(0,LB_LIMIT) : null;
-  }catch(e){ console.warn('global list failed', e); return null; }
-}
+function loadLocalScores(){ try{ return JSON.parse(localStorage.getItem(LB_LOCAL_KEY)||'[]'); }catch(_){ return []; } }
+function saveLocalScores(arr){ localStorage.setItem(LB_LOCAL_KEY, JSON.stringify(arr.slice(0,LB_LIMIT))); }
+async function fetchGlobalScores(){ if(!LEADERBOARD_ENDPOINT) return null; try{ const r = await fetch(LEADERBOARD_ENDPOINT+'?mode=list', {cache:'no-store'}); if(!r.ok) throw new Error('fetch fail'); const data = await r.json(); return Array.isArray(data) ? data.slice(0,LB_LIMIT) : null; }catch(e){ console.warn('global list failed', e); return null; } }
 async function submitGlobalScore(name, score){
   if(!LEADERBOARD_ENDPOINT) return {ok:false};
   try{
-    // ★ ヘッダーを付けない（＝ text/plain 扱い）→ プリフライト回避
-    const r = await fetch(LEADERBOARD_ENDPOINT, {
-      method: 'POST',
-      // headers: { 'Content-Type': 'application/json' }, // ← 付けない！
-      body: JSON.stringify({ mode:'submit', name, score, ts: Date.now() }),
-      // mode: 'cors' // 省略でもOK（明示しても可）
-    });
-
-    // GASのWebアプリは200以外でも本文にJSONが来ることがあるので念のためtry
-    let res = null;
-    try { res = await r.json(); } catch(_) { /* ignore */ }
+    const r = await fetch(LEADERBOARD_ENDPOINT, { method:'POST', body: JSON.stringify({ mode:'submit', name, score, ts: Date.now() }) });
+    let res=null; try{ res=await r.json(); }catch(_){}
     return { ok: !!(res && res.ok) };
-  }catch(e){
-    console.warn('global submit failed', e);
-    return { ok:false };
-  }
+  }catch(e){ console.warn('global submit failed', e); return { ok:false }; }
 }
-
-function mergeAndTrim(localArr, add){ // ローカルのみで順位判定に使う
-  const arr=[...localArr, add].sort((a,b)=>b.score-a.score).slice(0,LB_LIMIT);
-  return arr;
-}
-
-/* ========= Game Over Overlay ========= */
-function qualifiesLocal(finalScore){
-  const arr=loadLocalScores();
-  if(arr.length<LB_LIMIT) return true;
-  const min=arr[arr.length-1]?.score??-Infinity;
-  return finalScore>min;
-}
-function renderRankList(items){
-  rankList.innerHTML = items.map((r,i)=>`<li><span>#${i+1}. ${r.name||'---'}</span><strong>${r.score}</strong></li>`).join('') || '<li>No records</li>';
-}
+function mergeAndTrim(localArr, add){ return [...localArr, add].sort((a,b)=>b.score-a.score).slice(0,LB_LIMIT); }
+function qualifiesLocal(finalScore){ const arr=loadLocalScores(); if(arr.length<LB_LIMIT) return true; const min=arr[arr.length-1]?.score??-Infinity; return finalScore>min; }
+function renderRankList(items){ rankList.innerHTML = items.map((r,i)=>`<li><span>#${i+1}. ${r.name||'---'}</span><strong>${r.score}</strong></li>`).join('') || '<li>No records</li>'; }
 async function showGameOver(finalScore){
   playing=false; startBtn.textContent='▶︎';
   finalScoreEl.textContent=String(finalScore);
   overlay.classList.add('show');
   syncStatus.textContent = LEADERBOARD_ENDPOINT ? 'Syncing…' : '（ローカル保存のみ。スプレッドシート連携は後述URL設定）';
-
-  // まずローカルTop10を表示
   let local = loadLocalScores().sort((a,b)=>b.score-a.score).slice(0,LB_LIMIT);
   renderRankList(local);
-
-  // グローバルがあれば取得して表示
   let global = await fetchGlobalScores();
   if(global){ renderRankList(global); syncStatus.textContent='Global Top10'; }
   else if(LEADERBOARD_ENDPOINT){ syncStatus.textContent='グローバル取得失敗（ネット/設定要確認）'; }
-
-  // ランキング入りしたら入力欄を出す
   entryRow.style.display = qualifiesLocal(finalScore) ? 'flex' : 'none';
   if(entryRow.style.display!=='none'){ nameInput.value=''; nameInput.focus(); }
-
-  // 送信
   submitBtn.onclick = async ()=>{
     const name = (nameInput.value||'NONAME').slice(0,16);
-    // ローカル反映
     local = mergeAndTrim(loadLocalScores(), {name, score:finalScore, ts:Date.now()});
-    saveLocalScores(local);
-    renderRankList(local);
-    entryRow.style.display='none';
-    syncStatus.textContent='Saved locally.';
-
-    // グローバル送信
+    saveLocalScores(local); renderRankList(local);
+    entryRow.style.display='none'; syncStatus.textContent='Saved locally.';
     if(LEADERBOARD_ENDPOINT){
       syncStatus.textContent='Submitting to global…';
       const ok = (await submitGlobalScore(name, finalScore)).ok;
-      if(ok){
-        syncStatus.textContent='Submitted. Refreshing global…';
-        const g = await fetchGlobalScores();
-        if(g){ renderRankList(g); syncStatus.textContent='Global Top10'; }
-        else { syncStatus.textContent='送信OK／取得失敗'; }
-      }else{
-        syncStatus.textContent='グローバル送信失敗（設定/権限を確認）';
-      }
+      if(ok){ const g = await fetchGlobalScores(); if(g){ renderRankList(g); syncStatus.textContent='Global Top10'; } else { syncStatus.textContent='送信OK／取得失敗'; } }
+      else { syncStatus.textContent='グローバル送信失敗（設定/権限を確認）'; }
     }
   };
-
   playAgainBtn.onclick = ()=>{
     overlay.classList.remove('show');
     score=0; level=1; lives=3; multiplier=1.0;
@@ -429,14 +343,11 @@ function step(dt){
         multiplier=1.0; updateBadges();
         lives--; livesEl.textContent=String(lives);
         if(lives<=0){
-          // ★ ゲームオーバー：オーバーレイを出す
           const finalScore=score;
           level=1; score=0; lives=3;
           levelEl.textContent='1'; scoreEl.textContent='0'; livesEl.textContent='3';
-          makeLevel(level);
-          resetBallAndPaddle();
-          showGameOver(finalScore);
-          return;
+          makeLevel(level); resetBallAndPaddle();
+          showGameOver(finalScore); return;
         }
         resetBallAndPaddle();
       }
@@ -487,65 +398,53 @@ function drawPowerUps(){ for(const p of powerups){ ctx.fillStyle = p.type==='E'?
 function drawParticles(){ ctx.fillStyle=COLOR.fg; for(const pt of particles){ ctx.globalAlpha=Math.max(0,pt.life/0.35); ctx.fillRect(pt.x,pt.y,2,2);} ctx.globalAlpha=1; }
 function render(){ ctx.clearRect(0,0,W,H); drawBackground(); drawBricks(); drawPaddle(); drawBalls(); drawPowerUps(); drawParticles(); }
 
-/* ========= Loop / FPS ========= */
+/* ========= ループ / FPS ========= */
 let fpsCount=0, fpsTime=performance.now();
 function fpsTick(){ fpsCount++; const now=performance.now(); if(now-fpsTime>=500){ const fps=Math.round(1000*fpsCount/(now-fpsTime)); fpsEl.textContent=String(fps); fpsTime=now; fpsCount=0; } }
 function loop(t){ if(!playing){ last=t; requestAnimationFrame(loop); return; } let dt=(t-last)/1000; last=t; dt=Math.min(dt,0.05); acc+=dt; while(acc>=STEP){ step(STEP); acc-=STEP; } render(); fpsTick(); requestAnimationFrame(loop); }
 
-/* ========= Responsive (auto scale; no-scroll) ========= */
-function syncCanvasSize(){
-  const dpr=Math.max(1,Math.min(3,window.devicePixelRatio||1));
-  const panelW=Math.floor(panel.getBoundingClientRect().width);
-  const vh=(window.visualViewport?.height)||window.innerHeight;
+/* ========= 新規：フレームに“完全追従”するサイズ同期 =========
+   - CSS（%指定）の最終結果（見かけサイズ）を取得して内解像度を合わせる。
+   - 旧 syncCanvasSize は廃止。互換のため window.syncCanvasSize に同名を割当。
+================================================================ */
+function syncCanvasSizeFrame(){
+  const dpr=Math.max(1, Math.min(3, window.devicePixelRatio||1));
+  const r=canvas.getBoundingClientRect();
+  const cssW=Math.max(1, Math.floor(r.width));
+  const cssH=Math.max(1, Math.floor(r.height));
 
-  const headerH=document.querySelector('header')?.offsetHeight||0;
-  const hudH=panel?.offsetHeight||0;
-  const footerH=document.querySelector('footer')?.offsetHeight||0;
-
-  // まず等倍でDPAD高さを測る
-  document.documentElement.style.setProperty('--pad-scale','1');
-  const padEl=$('mobilePad'); const padH_ideal=padEl?.offsetHeight||0;
-
-  const byRatio=Math.round(panelW*1.5);
-  const by75=Math.floor(vh*0.75);
-  const availFirst=Math.max(240, vh - headerH - hudH - footerH - padH_ideal - 12);
-  let targetH=Math.min(byRatio,by75,availFirst);
-
-  // はみ出すならDPAD縮小（0.6〜1）
-  let need=(headerH+hudH+footerH+padH_ideal+targetH+12)-vh;
-  if(need>0 && padH_ideal>0){
-    const scale=Math.max(0.6, Math.min(1, 1 - (need/padH_ideal)));
-    document.documentElement.style.setProperty('--pad-scale', String(scale));
-    const padH_scaled=padEl?.offsetHeight||Math.round(padH_ideal*scale);
-    const avail=Math.max(240, vh - headerH - hudH - footerH - padH_scaled - 12);
-    targetH=Math.min(byRatio,by75,avail);
-  }
-
-  canvas.style.width=panelW+'px'; canvas.style.height=targetH+'px';
-  canvas.width=Math.round(panelW*dpr); canvas.height=Math.round(targetH*dpr);
+  // 内解像度をCSSサイズに一致させてボケを防ぐ
+  canvas.width=Math.round(cssW*dpr); canvas.height=Math.round(cssH*dpr);
   ctx.setTransform(dpr,0,0,dpr,0,0);
-  W=Math.round(canvas.width/dpr); H=Math.round(canvas.height/dpr);
 
-  paddle.w=clamp(paddle.w||PADDLE.w,PADDLE.minW,PADDLE.maxW);
-  paddle.h=PADDLE.h; paddle.x=clamp(paddle.x||(W/2-paddle.w/2),WALL.pad,W-WALL.pad-paddle.w); paddle.y=Math.round(H-56);
+  // ゲームの論理解像度もCSSピクセルに更新
+  W=cssW; H=cssH;
 
+  // パドル再配置
+  paddle.w=Math.min(Math.max(paddle.w||PADDLE.w, PADDLE.minW), PADDLE.maxW);
+  paddle.h=PADDLE.h;
+  paddle.x=Math.min(Math.max(paddle.x||(W/2-paddle.w/2), WALL.pad), W-WALL.pad-paddle.w);
+  paddle.y=Math.round(H-56);
+
+  // レベルを現在サイズに再配置
   makeLevel(level); resetBallAndPaddle();
 }
-function ensureSync(){ requestAnimationFrame(()=>setTimeout(syncCanvasSize,0)); }
-window.addEventListener('load',ensureSync); window.addEventListener('resize',ensureSync); window.addEventListener('orientationchange',ensureSync);
-if(window.visualViewport){ visualViewport.addEventListener('resize',ensureSync); visualViewport.addEventListener('scroll',ensureSync); }
-new ResizeObserver(ensureSync).observe($('mobilePad'));
-new ResizeObserver(ensureSync).observe($('scorePanel'));
+function ensureSync(){ requestAnimationFrame(()=>setTimeout(syncCanvasSizeFrame,0)); }
 
-/* ========= Global prevent selection/drag on UI ========= */
-['selectstart','dragstart','contextmenu'].forEach(ev=>{
-  document.addEventListener(ev, e=>{
-    if((e.target instanceof HTMLElement) && (e.target.closest('#mobilePad')||e.target.id==='screen')) e.preventDefault();
-  }, {passive:false});
-});
-if(canvas) canvas.setAttribute('draggable','false');
+// 画面回転/アドレスバー伸縮/ズームなどあらゆるレイアウト変化に追従
+addEventListener('load',ensureSync);
+addEventListener('resize',ensureSync);
+addEventListener('orientationchange',ensureSync);
+if(window.visualViewport){
+  visualViewport.addEventListener('resize',ensureSync);
+  visualViewport.addEventListener('scroll',ensureSync);
+}
+// フレーム実サイズ変化も監視（念のため）
+if('ResizeObserver' in window){
+  new ResizeObserver(ensureSync).observe(document.querySelector('.gb-frame'));
+}
 
-/* ========= Tests (sanity) ========= */
+/* ========= Tests（サニティ） ========= */
 (function tests(){
   const assert=(n,c)=> c? console.log('TEST PASS:',n):console.error('TEST FAIL:',n);
   const isResolved=s=>typeof s==='string'&&s.length>0&&!s.includes('var(');
