@@ -171,6 +171,14 @@ kbd { background:var(--bg); border:1px solid var(--fg); padding:1px 3px; font-fa
 #dpadUp,#dpadDown,#dpadLeft,#dpadRight{ background:var(--ctrl-dpad); color:var(--ctrl-dpad-fg); }
 #btnA,#btnB{ border-radius:999px; color:var(--ctrl-ab-fg); }
 #btnA{ background:var(--ctrl-a); } #btnB{ background:var(--ctrl-b); }
+/* 個別オフセット（transformで位置やサイズを微調整） */
+#dpadUp   { transform: translate(var(--up-x),    var(--up-y))    rotate(var(--up-rot))    scale(var(--up-scale)); }
+#dpadDown { transform: translate(var(--down-x),  var(--down-y))  rotate(var(--down-rot))  scale(var(--down-scale)); }
+#dpadLeft { transform: translate(var(--left-x),  var(--left-y))  rotate(var(--left-rot))  scale(var(--left-scale)); }
+#dpadRight{ transform: translate(var(--right-x), var(--right-y)) rotate(var(--right-rot)) scale(var(--right-scale)); }
+
+#btnA     { transform: translate(var(--A-x),     var(--A-y))     rotate(var(--A-rot))     scale(var(--A-scale)); }
+#btnB     { transform: translate(var(--B-x),     var(--B-y))     rotate(var(--B-rot))     scale(var(--B-scale)); }  
 
 /* ===== Overlay（ゲームオーバー/ランキング）・安定板のまま ===== */
 .overlay {
