@@ -1,0 +1,347 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Brick Breaker+ GB Frame</title>
+  <style>
+    :root{
+      --bg:#0d0d0d; --panel:#1c1c1c; --lcd:#101010; --bezel:#2a2a2a;
+      --txt:#ffe08a; --accent:#ffcf40; --muted:#8c8c8c;
+      --btn:#dcd2b2; --btn-dark:#b3a98a; --red:#e74c3c; --green:#27ae60; --blue:#3498db;
+    }
+    html, body { height:100%; margin:0; background:var(--bg); color:var(--txt); }
+    body { display:flex; flex-direction:column; font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto; }
+    header { padding:10px 14px; font-weight:700; letter-spacing:0.04em; }
+
+    /* === Frame background (replace gb-frame-bg.jpg with your asset) === */
+    .frame {
+      position:relative; flex:1 1 auto; display:grid; place-items:center;
+      overflow:hidden; isolation:isolate;
+    }
+    .frame::before{
+      content:""; position:absolute; inset:0;
+      background: url("./gb-frame-bg.jpg") center / cover no-repeat; /* put image next to this html */
+      opacity:0.85; z-index:0;
+    }
+
+    /* === Screen bezel (black inner frame) === */
+    .screen {
+      position:relative; width:min(92vw, 560px); aspect-ratio:3/4; /* 3:4 screen */
+      background:linear-gradient(#000,#090909);
+      border:6px solid #343434; box-shadow:0 0 0 2px #6c6c6c inset, 0 16px 40px rgba(0,0,0,.5);
+      border-radius:14px; z-index:1; display:flex;
+    }
+    /* Canvas fits the bezel; internal resolution handled by JS (DPR-aware) */
+    canvas#game { width:100%; height:100%; display:block; background:var(--lcd); border-radius:8px; }
+
+    /* === HUD (optional) === */
+    .hud {
+      position:absolute; left:0; right:0; top:-38px; z-index:2;
+      display:flex; gap:10px; align-items:center; justify-content:flex-start;
+      font-size:12px; color:#e9dca8;
+    }
+    .chip {
+      background:#1f1c07; border:1px solid #6f5a1a; padding:4px 8px; border-radius:6px;
+      box-shadow:0 2px 0 #000 inset;
+    }
+
+    /* === Virtual GB Controller (D-Pad + A/B) === */
+    .vpad {
+      position:absolute; inset:auto 0 10px 0; /* bottom anchored */
+      display:flex; justify-content:space-between; align-items:flex-end; gap:18px;
+      padding:0 8px; pointer-events:none; /* only children receive events */
+      z-index:5;
+    }
+    .cluster { pointer-events:auto; user-select:none; -webkit-user-select:none; touch-action:none; }
+
+    /* D-Pad */
+    .dpad {
+      position:relative; width:132px; height:132px; margin:6px 10px;
+      filter: drop-shadow(0 2px 0 rgba(0,0,0,.4));
+    }
+    .dpad button {
+      position:absolute; width:44%; height:44%;
+      background:linear-gradient(#2a2a2a, #0e0e0e);
+      border:2px solid #3d3d3d; border-radius:12px;
+      box-shadow:inset 0 2px 4px rgba(255,255,255,.06), inset 0 -2px 6px rgba(0,0,0,.6);
+      outline:none; color:transparent;
+    }
+    .dpad .up    { left:28%; top:0;    }
+    .dpad .down  { left:28%; bottom:0; }
+    .dpad .left  { left:0;    top:28%; }
+    .dpad .right { right:0;   top:28%; }
+
+    .dpad button:active { filter:brightness(1.2); transform:translateY(1px); }
+
+    /* A/B buttons */
+    .ab {
+      display:flex; gap:18px; align-items:center; margin:0 12px 8px;
+    }
+    .ab button {
+      width:72px; height:72px; border-radius:50%;
+      background:radial-gradient(circle at 35% 30%, #ff7b6e 10%, #d0463a 60%, #951f16 100%);
+      border:2px solid #60110b; box-shadow:inset 0 3px 6px rgba(255,255,255,.2), inset 0 -4px 8px rgba(0,0,0,.5);
+      outline:none; color:#fff; font-weight:700; font-size:18px; letter-spacing:1px;
+    }
+    .ab .b { background:radial-gradient(circle at 35% 30%, #98c7ff 10%, #4287e6 60%, #1b3f8e 100%); border-color:#102c6a; }
+
+    .ab button:active { transform:translateY(2px) scale(.98); }
+
+    /* Small devices */
+    @media (max-width:380px){
+      .dpad{ width:112px; height:112px; }
+      .ab button{ width:64px; height:64px; font-size:16px; }
+    }
+
+    * { -webkit-tap-highlight-color: transparent; }
+  </style>
+</head>
+<body>
+  <header>Brick Breaker+ GB Frame</header>
+
+  <main class="frame">
+    <div class="screen">
+      <div class="hud">
+        <div class="chip" id="score">SCORE: 0</div>
+        <div class="chip" id="lives">LIVES: 3</div>
+        <div class="chip" id="level">LV: 1</div>
+        <div class="chip" id="fps">FPS: 0</div>
+        <div class="chip" id="power">NO POWER</div>
+      </div>
+      <canvas id="game" aria-label="Game canvas" role="img"></canvas>
+
+      <!-- Virtual GB Controller -->
+      <div class="vpad" aria-hidden="false">
+        <div class="cluster">
+          <div class="dpad" id="dpad" role="group" aria-label="Directional Pad">
+            <button class="up"    data-action="up"    aria-label="Up"></button>
+            <button class="down"  data-action="down"  aria-label="Down"></button>
+            <button class="left"  data-action="left"  aria-label="Left"></button>
+            <button class="right" data-action="right" aria-label="Right"></button>
+          </div>
+        </div>
+        <div class="cluster ab" role="group" aria-label="A/B Buttons">
+          <button class="b" data-action="b" aria-label="B Button">B</button>
+          <button class="a" data-action="a" aria-label="A Button">A</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+  // =================== Reusable Input Manager ===================
+  class InputManager {
+    /**
+     * Unified input:
+     * - Keyboard: Arrow keys, WASD, Space/Enter (=A), X (=B)
+     * - Pointer/Touch: D-Pad & A/B buttons
+     * - Gamepad: 0(A)/1(B), Axis L/R (if supported)
+     */
+    constructor(targetEl){
+      this.state = { left:false, right:false, up:false, down:false, a:false, b:false };
+      this._listeners = new Set();
+      this._target = targetEl || document;
+      this._bindKeyboard();
+      this._bindPointer();
+      this._bindGamepad();
+    }
+    onChange(fn){ this._listeners.add(fn); return () => this._listeners.delete(fn); }
+    get(){ return {...this.state}; }
+    set(part, val){ if(this.state[part] === val) return; this.state[part] = val; this._emit(); }
+    _emit(){ for(const fn of this._listeners) fn(this.get()); }
+
+    _bindKeyboard(){
+      const map = {
+        "ArrowLeft":"left","KeyA":"left",
+        "ArrowRight":"right","KeyD":"right",
+        "ArrowUp":"up","KeyW":"up",
+        "ArrowDown":"down","KeyS":"down",
+        "Space":"a","Enter":"a","KeyZ":"a","KeyX":"b"
+      };
+      window.addEventListener('keydown', (e)=>{
+        const k = map[e.code]; if(!k) return;
+        e.preventDefault(); this.set(k, true);
+      }, { passive:false });
+      window.addEventListener('keyup', (e)=>{
+        const k = map[e.code]; if(!k) return;
+        e.preventDefault(); this.set(k, false);
+      }, { passive:false });
+    }
+
+    _bindPointer(){
+      const root = document.querySelector('.vpad');
+      if(!root) return;
+      const setPressed = (el, isDown)=>{
+        const act = el?.dataset?.action; if(!act) return;
+        this.set(act, isDown);
+        if(el.setAttribute) el.setAttribute('aria-pressed', String(isDown));
+      };
+      const start = (e)=>{ e.preventDefault(); setPressed(e.target.closest('[data-action]'), true); };
+      const end   = (e)=>{ e.preventDefault(); setPressed(e.target.closest('[data-action]'), false); };
+      root.addEventListener('pointerdown', start, { passive:false });
+      root.addEventListener('pointerup',   end,   { passive:false });
+      root.addEventListener('pointercancel',end,  { passive:false });
+      root.addEventListener('pointerleave', end,  { passive:false });
+    }
+
+    _bindGamepad(){
+      const poll = ()=>{
+        const pads = navigator.getGamepads ? navigator.getGamepads() : [];
+        const p = pads && pads[0];
+        if(p){
+          const ax = p.axes?.[0] || 0;
+          this.set('left',  ax < -0.2);
+          this.set('right', ax >  0.2);
+          this.set('a', !!p.buttons?.[0]?.pressed);
+          this.set('b', !!p.buttons?.[1]?.pressed);
+        }
+        requestAnimationFrame(poll);
+      };
+      poll();
+    }
+  }
+
+  // =================== Game Core (Brick Breaker) ===================
+  (() => {
+    // --- Canvas & DPR ---
+    const BASE_W = 360, BASE_H = 480;
+    const DPR = Math.max(1, Math.floor(window.devicePixelRatio || 1));
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+    function setupCanvas(){
+      canvas.width  = BASE_W * DPR;
+      canvas.height = BASE_H * DPR;
+      ctx.setTransform(DPR,0,0,DPR,0,0);
+    }
+    setupCanvas(); addEventListener('resize', setupCanvas);
+
+    // --- Playfield ---
+    const PADDING = 12;
+    const play = { x:PADDING, y:PADDING, w:BASE_W - PADDING*2, h:BASE_H - PADDING*2 };
+
+    // --- Bricks (smaller bricks, many columns) ---
+    const GRID = { rows: 9, cols: 12, gapX: 6, gapY: 6, baseH: 18, BRICK_SCALE: 0.75 };
+    const brickBaseW = Math.floor((play.w - GRID.gapX*(GRID.cols-1))/GRID.cols);
+    const brickW = Math.max(6, Math.floor(brickBaseW * GRID.BRICK_SCALE));
+    const brickH = Math.max(6, Math.floor(GRID.baseH  * GRID.BRICK_SCALE));
+    const bricksTotalW = brickW*GRID.cols + GRID.gapX*(GRID.cols-1);
+    const bricksTotalH = brickH*GRID.rows + GRID.gapY*(GRID.rows-1);
+    const bricksStartX = Math.round(play.x + (play.w - bricksTotalW)/2);
+    const bricksStartY = Math.round(play.y + 8);
+
+    const bricks = [];
+    for(let r=0;r<GRID.rows;r++){
+      for(let c=0;c<GRID.cols;c++){
+        bricks.push({
+          alive:true,
+          x: bricksStartX + c*(brickW + GRID.gapX),
+          y: bricksStartY + r*(brickH + GRID.gapY),
+          w: brickW, h: brickH,
+          color: r<3 ? '#e74c3c' : r<6 ? '#27ae60' : '#3498db'
+        });
+      }
+    }
+
+    // --- Paddle / Ball ---
+    const paddle = { w: Math.floor(play.w*0.26), h:10, x:0, y: play.y + play.h - 52, speed: 6.4 };
+    paddle.x = Math.round(play.x + (play.w - paddle.w)/2);
+
+    const ball = { r:3.5, x:paddle.x + paddle.w/2, y:paddle.y - 14, vx:2.6, vy:-2.8, stuck:true };
+
+    // --- Input ---
+    const input = new InputManager(document);
+    let paused = false;
+    input.onChange((s)=>{
+      if(s.a && ball.stuck){ ball.stuck = false; }
+      if(s.b){ paused = !paused; }
+    });
+
+    // --- Update & Collisions ---
+    function clamp(v,min,max){ return v<min?min: v>max?max:v; }
+    function hitRectCircle(rx, ry, rw, rh, cx, cy, cr){
+      const nx = Math.max(rx, Math.min(cx, rx+rw));
+      const ny = Math.max(ry, Math.min(cy, ry+rh));
+      const dx = cx-nx, dy = cy-ny;
+      return (dx*dx + dy*dy) <= cr*cr;
+    }
+
+    let last = performance.now(), fps=0; const fpsEl=document.getElementById('fps');
+    function loop(t){
+      const dt = Math.min(1/30, (t-last)/1000); last=t; fps = Math.round(1/dt); fpsEl.textContent = `FPS: ${fps}`;
+      if(!paused){ update(dt); }
+      draw();
+      requestAnimationFrame(loop);
+    }
+
+    function update(dt){
+      // Movement
+      const s = input.get();
+      const dx = (s.left? -1 : 0) + (s.right? 1 : 0);
+      paddle.x += dx * paddle.speed * 60 * dt;
+      paddle.x = clamp(paddle.x, play.x, play.x + play.w - paddle.w);
+
+      if(ball.stuck){
+        ball.x = paddle.x + paddle.w/2; ball.y = paddle.y - 14;
+      }else{
+        ball.x += ball.vx * 60 * dt;
+        ball.y += ball.vy * 60 * dt;
+      }
+
+      // Walls
+      if(ball.x - ball.r < play.x){ ball.x=play.x+ball.r; ball.vx*=-1; }
+      if(ball.x + ball.r > play.x + play.w){ ball.x=play.x+play.w-ball.r; ball.vx*=-1; }
+      if(ball.y - ball.r < play.y){ ball.y=play.y+ball.r; ball.vy*=-1; }
+      if(ball.y - ball.r > play.y + play.h){
+        ball.stuck = true; // life lost (simplified)
+      }
+
+      // Paddle
+      if(hitRectCircle(paddle.x,paddle.y,paddle.w,paddle.h, ball.x,ball.y,ball.r)){
+        ball.y = paddle.y - ball.r;
+        ball.vy = -Math.abs(ball.vy);
+        const hit = (ball.x - (paddle.x + paddle.w/2)) / (paddle.w/2);
+        ball.vx = clamp(ball.vx + hit*1.2, -4.2, 4.2);
+      }
+
+      // Bricks
+      for(const b of bricks){
+        if(!b.alive) continue;
+        if(hitRectCircle(b.x,b.y,b.w,b.h, ball.x,ball.y,ball.r)){
+          b.alive = false;
+          const cx = ball.x, cy = ball.y;
+          const px = clamp(cx, b.x, b.x+b.w);
+          const py = clamp(cy, b.y, b.y+b.h);
+          const dx = Math.abs(cx - px), dy = Math.abs(cy - py);
+          if(dx > dy) ball.vx *= -1; else ball.vy *= -1;
+          break;
+        }
+      }
+    }
+
+    // --- Draw ---
+    function draw(){
+      ctx.fillStyle = '#111'; ctx.fillRect(0,0,BASE_W,BASE_H);
+      ctx.strokeStyle = '#6c6c6c'; ctx.lineWidth = 2;
+      ctx.strokeRect(play.x, play.y, play.w, play.h);
+
+      for(const b of bricks){
+        if(!b.alive) continue;
+        ctx.fillStyle = b.color; ctx.fillRect(b.x, b.y, b.w, b.h);
+      }
+
+      ctx.fillStyle = '#e7e3c4'; ctx.fillRect(paddle.x, paddle.y, paddle.w, paddle.h);
+
+      ctx.fillStyle = '#f5f5f5'; ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI*2); ctx.fill();
+
+      document.getElementById('score').textContent = `SCORE: ${bricks.filter(b=>!b.alive).length*10}`;
+      document.getElementById('lives').textContent = `LIVES: ${ball.stuck? '• • •' : '• •'}`;
+      document.getElementById('level').textContent = `LV: 1`;
+      document.getElementById('power').textContent = `${paused ? 'PAUSED' : (ball.stuck ? 'READY' : 'PLAY')}`;
+    }
+
+    requestAnimationFrame(loop);
+  })();
+  </script>
+</body>
+</html>
