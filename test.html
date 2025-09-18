@@ -121,9 +121,8 @@
     }
   </style>
 </head>
-  
+<head>
 </style>
-</head>
 <body data-theme="gb">
   <div class="wrap">
     <header>
@@ -190,6 +189,75 @@
     </div>
   </div>
 
+</script>
+<script>
+/* ====== GBフレーム液晶フィット：サイズ同期（置き換え） ====== */
+
+// 既存の参照を流用
+const canvas = document.getElementById('screen');
+const ctx = canvas.getContext('2d');
+
+// ゲーム側のグローバル（既に定義済みなら再定義されません）
+window.W ??= 480;
+window.H ??= 800;
+const PADDLE = window.PADDLE || { w:104, h:16, speed:600, minW:64, maxW:240 };
+const WALL   = window.WALL   || { pad:10 };
+const clamp  = window.clamp  || ((v,a,b)=>Math.min(Math.max(v,a),b));
+const paddle = window.paddle || { x:0,y:0,w:PADDLE.w,h:PADDLE.h };
+
+// ★ 新：CSSレイアウト（%指定）に完全追従し、内部解像度のみ合わせる
+function syncCanvasSizeFrame(){
+  const dpr = Math.max(1, Math.min(3, window.devicePixelRatio || 1));
+
+  // CSSレイアウト後の見かけサイズ（液晶パーセントで決まる）
+  const rect = canvas.getBoundingClientRect();
+  const cssW = Math.max(1, Math.floor(rect.width));
+  const cssH = Math.max(1, Math.floor(rect.height));
+
+  // 内部解像度（物理解像度）を合わせ、ぼやけ防止
+  canvas.width  = Math.round(cssW * dpr);
+  canvas.height = Math.round(cssH * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  // 論理解像度も CSS ピクセルに更新
+  window.W = cssW;
+  window.H = cssH;
+
+  // パドル位置の再配置（底から一定）
+  paddle.w = clamp(paddle.w || PADDLE.w, PADDLE.minW, PADDLE.maxW);
+  paddle.h = PADDLE.h;
+  paddle.x = clamp(paddle.x || (W/2 - paddle.w/2), WALL.pad, W - WALL.pad - paddle.w);
+  paddle.y = Math.round(H - 56);
+
+  // レベル再配置（あなたのコードにある関数を呼び出し）
+  if (typeof makeLevel === 'function') makeLevel(window.level || 1);
+  if (typeof resetBallAndPaddle === 'function') resetBallAndPaddle();
+}
+
+// レイアウト変化に追従（URLバー伸縮/回転/ズーム/リサイズ）
+function ensureFrameSync(){
+  // 次フレーム＆レイアウト確定後に実行
+  requestAnimationFrame(()=>setTimeout(syncCanvasSizeFrame, 0));
+}
+
+// ===== イベントバインド（旧関数を呼んでいても動くよう互換ラッパを提供） =====
+window.addEventListener('load', ensureFrameSync);
+window.addEventListener('resize', ensureFrameSync);
+window.addEventListener('orientationchange', ensureFrameSync);
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', ensureFrameSync);
+  window.visualViewport.addEventListener('scroll', ensureFrameSync);
+}
+// .gb-frame の実サイズ変化も監視
+const gbFrameEl = document.querySelector('.gb-frame');
+if (gbFrameEl && 'ResizeObserver' in window) {
+  new ResizeObserver(ensureFrameSync).observe(gbFrameEl);
+}
+
+// === 後方互換（既存コードが syncCanvasSize / ensureSync を呼んでもOKにする） ===
+window.syncCanvasSize = syncCanvasSizeFrame;  // 旧名 → 新関数
+window.ensureSync     = ensureFrameSync;      // 旧名 → 新関数
+</script>
 <script>
 /* ========= DOM ========= */
 const $ = id => document.getElementById(id);
